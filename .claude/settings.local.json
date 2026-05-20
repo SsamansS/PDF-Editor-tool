@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python pdf_editor.py edit-open \"Safe apr.pdf\" \"Safe apr.txt\")",
+      "Bash(python -m pip install pymupdf)",
+      "Bash(python -c ' *)",
+      "Bash(python pdf_editor.py edit-apply \"Safe apr.pdf\" \"Safe apr_edited.txt\" \"Safe apr_result.pdf\")"
+    ]
+  }
+}

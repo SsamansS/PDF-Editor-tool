@@ -1,0 +1,962 @@
+=== Страница 1 ===
+ 
+   
+  
+ 000000652971935
+CUSTOMER SERVICE INFORMATION
+00143910401000000024
+ 1 
+ 8
+                                                       
+ 
+ 
+Page
+of
+SM
+SM
+SM
+INSTANCES
+AMOUNT
+00014391
+DRE 111 212 12126 NNNNNNNNNNN
+  1 000000000 67
+0000
+ 
+®
+JPMorgan Chase Bank, N.A.
+P O Box 44959
+Indianapolis, IN 46244 - 4959
+April 01, 2026 through April 30, 2026
+Account Number:    
+Chase.com
+1-800-242-7338
+Beginning Balance
+$4,527.71
+Ending Balance
+150
+$5,665.44
+How to Avoid the Monthly Service Fee (MSF)
+Web site:
+Service Center:
+Para Espanol:
+1-888-622-4273
+International Calls:
+1-713-262-1679
+We accept operator relay calls
+SAFE LINE INC.
+1456 DELLA DR
+HOFFMAN ESTATES IL
+60169-6958 
+Chase Business Complete Checking
+Deposits and Additions
+34
+3,329,857.53
+Electronic Withdrawals
+71
+-3,304,938.88
+Other Withdrawals
+2
+-22,988.42
+Fees
+43
+-792.50
+Your Monthly Service Fee was $15 this statement period.
+If you meet any of the following qualifying activities for this Chase Business Complete Checking
+ account in a statement
+period, we will waive the $15 MSF.
+Here's the business activity we used to determine if you qualified for the MSF waiver:
+$2,000 Minimum Daily Ending Balance: Your lowest daily ending balance was $1,263.61.
+$2,000 Chase Payment Solutions
+Activity: $0.00 was deposited into this account.
+$2,000 Chase Ink
+ Business Card Activity: $115.80 was your total Ink activity.
+You can also avoid the MSF if you:
+Maintain a linked Chase Private Client Checking
+ account OR
+Meet Chase Military Banking requirements
+For complete details on all requirements to avoid the MSF, please review the Additional Banking Services and Fees for
+Business Accounts at chase.com/business/disclosures or visit a Chase branch.
+CHECKING SUMMARY
+•
+•
+•
+•
+•
+*start*summary
+*end*summary
+*start*post summary message1
+*end*post summary message1
+
+=== Страница 2 ===
+ 000000652971935
+ 2 
+ 8
+Page
+of
+DATE
+DESCRIPTION
+AMOUNT
+ 
+April 01, 2026 through April 30, 2026
+Account Number:    
+04/01
+Orig CO Name:Porter Freight F       Orig ID:Stripe6088 Desc Date:       CO Entry
+Descr:Payment   Sec:CCD    Trace#:242071756443919 Eed:260401   Ind
+ID:S4O5C6O9S7P7                 Ind Name:Safe Line Inc
+Stripe6088 Trn: 0916443919Tc
+$106,636.61
+04/02
+Orig CO Name:Porter Freight F       Orig ID:Stripe6088 Desc Date:       CO Entry
+Descr:Payment   Sec:CCD    Trace#:242071751561978 Eed:260402   Ind
+ID:E7K6I6N4T4T0                 Ind Name:Safe Line Inc
+Stripe6088 Trn: 0921561978Tc
+152,240.55
+04/03
+Orig CO Name:Porter Freight F       Orig ID:Stripe6088 Desc Date:       CO Entry
+Descr:Payment   Sec:CCD    Trace#:242071752154084 Eed:260403   Ind
+ID:Y4Q8N6X5I2K4                 Ind Name:Safe Line Inc
+Stripe6088 Trn: 0932154084Tc
+70,713.10
+04/06
+Orig CO Name:Porter Freight F       Orig ID:Stripe6088 Desc Date:       CO Entry
+Descr:Payment   Sec:CCD    Trace#:242071757270906 Eed:260406   Ind
+ID:U8S7T7K6W1O9                 Ind Name:Safe Line Inc
+Stripe6088 Trn: 0967270906Tc
+84,822.82
+04/07
+Orig CO Name:Porter Freight F       Orig ID:Stripe6088 Desc Date:       CO Entry
+Descr:Payment   Sec:CCD    Trace#:242071758987758 Eed:260407   Ind
+ID:V8C0R3N5W5K9                 Ind Name:Safe Line Inc
+Stripe6088 Trn: 0978987758Tc
+47,304.38
+04/08
+Orig CO Name:Porter Freight F       Orig ID:Stripe6088 Desc Date:       CO Entry
+Descr:Payment   Sec:CCD    Trace#:242071753054568 Eed:260408   Ind
+ID:K2I6U9K2H6D4                 Ind Name:Safe Line Inc
+Stripe6088 Trn: 0983054568Tc
+155,062.37
+04/08
+Orig CO Name:Ge Freight LLC         Orig ID:S941687665 Desc Date:260408 CO Entry
+Descr:Sender    Sec:CTX    Trace#:113000026664990 Eed:260408   Ind ID:855083634
+Ind Name:0000Safe Line Inc Trn: 0986664990Tc
+4,700.00
+04/09
+Orig CO Name:Porter Freight F       Orig ID:Stripe6088 Desc Date:       CO Entry
+Descr:Payment   Sec:CCD    Trace#:242071751290611 Eed:260409   Ind
+ID:G3Z1C8F7G8X0                 Ind Name:Safe Line Inc
+Stripe6088 Trn: 0991290611Tc
+162,569.70
+04/10
+Fedwire Credit Via: Bank of America, N.A./026009593 B/O: Love's Solutions, LLC Dba
+Saint Johpark Ridge IL 60068 US Ref: Chase Nyc/Ctr/Bnf=Safe Line Inc. Hoffman Estates
+IL 60169-6958 US/Ac-0 00000006529 Rfb=Notprovided Imad: 0410B6B7Hu3R019259 Trn:
+1351841100Ff
+199,985.00
+04/10
+Orig CO Name:Air & Ocean Logi       Orig ID:9404792001 Desc Date:       CO Entry
+Descr:Corp Pay  Sec:CCD    Trace#:044000022346803 Eed:260410   Ind ID:
+Ind Name:Safe Line Inc              Loads 6643, 6673 ($3500) Trn: 1002346803Tc
+5,000.00
+04/13
+Fedwire Credit Via: Bank of America, N.A./026009593 B/O: Love's Solutions, LLC Dba
+Saint Johpark Ridge IL 60068 US Ref: Chase Nyc/Ctr/Bnf=Safe Line Inc. Hoffman Estates
+IL 60169-6958 US/Ac-0 00000006529 Rfb=Notprovided Imad: 0413B6B7Hu3R017939 Trn:
+1235691103Ff
+147,055.47
+04/14
+Fedwire Credit Via: Bank of America, N.A./026009593 B/O: Love's Solutions, LLC Dba
+Saint Johpark Ridge IL 60068 US Ref: Chase Nyc/Ctr/Bnf=Safe Line Inc. Hoffman Estates
+IL 60169-6958 US/Ac-0 00000006529 Rfb=Notprovided Imad: 0414B6B7Hu1R017394 Trn:
+1158241104Ff
+112,761.32
+04/14
+Orig CO Name:Love's Solutions       Orig ID:2270990286 Desc Date:Apr 14 CO Entry
+Descr:Adv Fund  Sec:CCD    Trace#:111000026448960 Eed:260414   Ind ID:
+Ind Name:Safe Line Inc. Trn: 1046448960Tc
+20,031.40
+04/15
+Fedwire Credit Via: Bank of America, N.A./026009593 B/O: Love's Solutions, LLC Dba
+Saint Johpark Ridge IL 60068 US Ref: Chase Nyc/Ctr/Bnf=Safe Line Inc. Hoffman Estates
+IL 60169-6958 US/Ac-0 00000006529 Rfb=Notprovided Imad: 0415B6B7Hu1R019728 Trn:
+1308591105Ff
+133,526.70
+04/15
+Orig CO Name:Love's Solutions       Orig ID:2270990286 Desc Date:Apr 15 CO Entry
+Descr:Adv Fund  Sec:CCD    Trace#:111000023624442 Eed:260415   Ind ID:
+Ind Name:Safe Line Inc. Trn: 1053624442Tc
+2,578.20
+04/16
+Fedwire Credit Via: Bank of America, N.A./026009593 B/O: Love's Solutions, LLC Dba
+Saint Johpark Ridge IL 60068 US Ref: Chase Nyc/Ctr/Bnf=Safe Line Inc. Hoffman Estates
+IL 60169-6958 US/Ac-0 00000006529 Rfb=Notprovided Imad: 0416B6B7Hu4R018589 Trn:
+1204021106Ff
+52,662.40
+04/16
+Deposit      2179516284
+1,995.34
+DEPOSITS AND ADDITIONS
+*start*deposits and additions
+*end*deposits and additions
+
+=== Страница 3 ===
+ 000000652971935
+10143910402000000064
+ 3 
+ 8
+Page
+of
+DATE
+DESCRIPTION
+AMOUNT
+ 
+April 01, 2026 through April 30, 2026
+Account Number:    
+Total Deposits and Additions
+$3,329,857.53
+04/16
+Orig CO Name:Love's Solutions       Orig ID:2270990286 Desc Date:Apr 16 CO Entry
+Descr:Adv Fund  Sec:CCD    Trace#:111000020884361 Eed:260416   Ind ID:
+Ind Name:Safe Line Inc. Trn: 1060884361Tc
+293,119.25
+04/17
+Orig CO Name:Love's Solutions       Orig ID:2270990286 Desc Date:Apr 17 CO Entry
+Descr:Adv Fund  Sec:CCD    Trace#:111000029306699 Eed:260417   Ind ID:
+Ind Name:Safe Line Inc. Trn: 1079306699Tc
+203,412.98
+04/20
+Orig CO Name:Love's Solutions       Orig ID:2270990286 Desc Date:Apr 20 CO Entry
+Descr:Adv Fund  Sec:CCD    Trace#:111000026562212 Eed:260420   Ind ID:
+Ind Name:Safe Line Inc. Trn: 1106562212Tc
+153,555.20
+04/21
+Orig CO Name:Love's Solutions       Orig ID:2270990286 Desc Date:Apr 21 CO Entry
+Descr:Adv Fund  Sec:CCD    Trace#:111000027431373 Eed:260421   Ind ID:
+Ind Name:Safe Line Inc. Trn: 1117431373Tc
+103,616.92
+04/22
+Fedwire Credit Via: Bank of America, N.A./026009593 B/O: Love's Solutions, LLC Dba
+Saint Johpark Ridge IL 60068 US Ref: Chase Nyc/Ctr/Bnf=Safe Line Inc. Hoffman Estates
+IL 60169-6958 US/Ac-0 00000006529 Rfb=Notprovided Imad: 0422B6B7Hu3R015143 Trn:
+0956791112Ff
+14,016.80
+04/22
+Orig CO Name:Love's Solutions       Orig ID:2270990286 Desc Date:Apr 22 CO Entry
+Descr:Adv Fund  Sec:CCD    Trace#:111000029933966 Eed:260422   Ind ID:
+Ind Name:Safe Line Inc. Trn: 1129933966Tc
+179,168.24
+04/23
+Fedwire Credit Via: Bank of America, N.A./026009593 B/O: Love's Solutions, LLC Dba
+Saint Johpark Ridge IL 60068 US Ref: Chase Nyc/Ctr/Bnf=Safe Line Inc. Hoffman Estates
+IL 60169-6958 US/Ac-0 00000006529 Rfb=Notprovided Imad: 0423B6B7Hu4R017735 Trn:
+1052261113Ff
+5,851.80
+04/23
+Orig CO Name:Love's Solutions       Orig ID:2270990286 Desc Date:Apr 23 CO Entry
+Descr:Adv Fund  Sec:CCD    Trace#:111000027853142 Eed:260423   Ind ID:
+Ind Name:Safe Line Inc. Trn: 1137853142Tc
+124,489.95
+04/24
+Fedwire Credit Via: Bank of America, N.A./026009593 B/O: Love's Solutions, LLC Dba
+Saint Johpark Ridge IL 60068 US Ref: Chase Nyc/Ctr/Bnf=Safe Line Inc. Hoffman Estates
+IL 60169-6958 US/Ac-0 00000006529 Rfb=Notprovided Imad: 0424B6B7Hu1R016915 Trn:
+1053451114Ff
+197.19
+04/24
+Orig CO Name:Love's Solutions       Orig ID:2270990286 Desc Date:Apr 24 CO Entry
+Descr:Adv Fund  Sec:CCD    Trace#:111000025265307 Eed:260424   Ind ID:
+Ind Name:Safe Line Inc. Trn: 1145265307Tc
+212,135.79
+04/27
+Fedwire Credit Via: Bank of America, N.A./026009593 B/O: Love's Solutions, LLC Dba
+Saint Johpark Ridge IL 60068 US Ref: Chase Nyc/Ctr/Bnf=Safe Line Inc. Hoffman Estates
+IL 60169-6958 US/Ac-0 00000006529 Rfb=Notprovided Imad: 0427B6B7Hu1R018471 Trn:
+1216661117Ff
+10,498.20
+04/27
+Orig CO Name:Love's Solutions       Orig ID:2270990286 Desc Date:Apr 27 CO Entry
+Descr:Adv Fund  Sec:CCD    Trace#:111000024202256 Eed:260427   Ind ID:
+Ind Name:Safe Line Inc. Trn: 1174202256Tc
+55,580.60
+04/28
+Orig CO Name:Love's Solutions       Orig ID:2270990286 Desc Date:Apr 28 CO Entry
+Descr:Adv Fund  Sec:CCD    Trace#:111000029199157 Eed:260428   Ind ID:
+Ind Name:Safe Line Inc. Trn: 1189199157Tc
+140,981.56
+04/28
+Orig CO Name:Ge Freight LLC         Orig ID:S941687665 Desc Date:260428 CO Entry
+Descr:Sender    Sec:CTX    Trace#:113000025827280 Eed:260428   Ind ID:858568934
+Ind Name:0000Safe Line Inc Trn: 1185827280Tc
+2,000.00
+04/29
+Fedwire Credit Via: Bank of America, N.A./026009593 B/O: Love's Solutions, LLC Dba
+Saint Johpark Ridge IL 60068 US Ref: Chase Nyc/Ctr/Bnf=Safe Line Inc. Hoffman Estates
+IL 60169-6958 US/Ac-0 00000006529 Rfb=Notprovided Imad: 0429B6B7Hu4R018802 Trn:
+1222101119Ff
+13,452.36
+04/29
+Orig CO Name:Love's Solutions       Orig ID:2270990286 Desc Date:Apr 29 CO Entry
+Descr:Adv Fund  Sec:CCD    Trace#:111000023239279 Eed:260429   Ind ID:
+Ind Name:Safe Line Inc. Trn: 1193239279Tc
+254,827.26
+04/30
+Orig CO Name:Love's Solutions       Orig ID:2270990286 Desc Date:Apr 30 CO Entry
+Descr:Adv Fund  Sec:CCD    Trace#:111000024996395 Eed:260430   Ind ID:
+Ind Name:Safe Line Inc. Trn: 1204996395Tc
+103,308.07
+DEPOSITS AND ADDITIONS
+  (continued)
+*start*deposits and additions
+*end*deposits and additions
+
+=== Страница 4 ===
+ 000000652971935
+ 4 
+ 8
+Page
+of
+DATE
+DESCRIPTION
+AMOUNT
+ 
+April 01, 2026 through April 30, 2026
+Account Number:    
+04/01
+Zelle Payment To Kanatbekov Ulan 28258249068
+$885.00
+04/01
+Orig CO Name:Mitsubishi Hcc         Orig ID:3333308288 Desc Date:260401 CO Entry Descr:M
+6713    Sec:CCD    Trace#:071000286744350 Eed:260401   Ind ID:020000000956527
+Ind Name:Dayana Logistics Inc.                                                                                        02
+Trn: 0916744350Tc
+11,991.49
+04/01
+04/01 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3817966091Es
+90,000.00
+04/01
+Orig CO Name:Htb Equip Financ       Orig ID:8560181785 Desc Date:       CO Entry Descr:Auth
+Paymesec:CCD    Trace#:253170275962757 Eed:260401   Ind ID:G-1B999589207D4
+Ind Name:Dayana Logistics Inc. Trn: 0915962757Tc
+2,624.74
+04/02
+Orig CO Name:Prepass                Orig ID:3860730202 Desc Date:A26091 CO Entry
+Descr:8007737277Sec:CCD    Trace#:091000012081117 Eed:260402   Ind
+ID:2W257Iawzlylfh6              Ind Name:Safe Line Cargo Inc Trn: 0922081117Tc
+22,487.97
+04/02
+Orig CO Name:Leasedirect            Orig ID:138190450  Desc Date:260401 CO Entry
+Descr:18186_1   Sec:CCD    Trace#:043000092001048 Eed:260402   Ind ID:4076286
+Ind Name:Dayana Logistics Inc.      Inv# 596109628 Due 04/01/26 Rec# 10 10850644
+18187 Trn: 0922001048Tc
+6,905.55
+04/02
+Orig CO Name:Leasedirect            Orig ID:138190450  Desc Date:260401 CO Entry
+Descr:18186_1   Sec:CCD    Trace#:043000092001046 Eed:260402   Ind ID:4076286
+Ind Name:Dayana Logistics Inc.      Inv# 596113780 Due 04/01/26 Rec# 10 10850643
+18187 Trn: 0922001046Tc
+3,347.65
+04/02
+Orig CO Name:Bmo Bank               Orig ID:5362085229 Desc Date:260401 CO Entry
+Descr:Bmoachpmt Sec:CCD    Trace#:071000281526112 Eed:260402   Ind
+ID:000000007972501              Ind Name:Safe Line Inc. Trn: 0921526112Tc
+3,081.15
+04/02
+Orig CO Name:Carmax Auto            Orig ID:E541821055 Desc Date:260401 CO Entry
+Descr:Finance   Sec:CCD    Trace#:042000011706385 Eed:260402   Ind ID:Carmax106457877
+Ind Name:Khamraevarana Trn: 0921706385Tc
+893.28
+04/02
+04/02 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3368276092Es
+115,000.00
+04/03
+Orig CO Name:Pegasustranstech       Orig ID:1901018808 Desc Date:260403 CO Entry
+Descr:Payment   Sec:PPD    Trace#:071000282218465 Eed:260403   Ind ID:
+Ind Name:Safe Line Inc Trn: 0932218465Tc
+41.16
+04/03
+Orig CO Name:Prog County Mut        Orig ID:9409348161 Desc Date:260403 CO Entry
+Descr:Ins Prem  Sec:PPD    Trace#:021000021923529 Eed:260403   Ind ID:
+Ind Name:Safe Line Inc Trn: 0931923529Tc
+824.38
+04/03
+04/03 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3423746093Es
+70,000.00
+04/06
+Orig CO Name:Crossroads Equip       Orig ID:8000001750 Desc Date:260405 CO Entry
+Descr:Leasepaymesec:PPD    Trace#:021000024032732 Eed:260406   Ind ID:
+Ind Name:Dayana Logistics Inc. Trn: 0964032732Tc
+2,122.02
+04/06
+Orig CO Name:Bmw Bank               Orig ID:0870631885 Desc Date:260405 CO Entry
+Descr:Bmwfs Pymtsec:PPD    Trace#:021000023846718 Eed:260406   Ind ID:
+Ind Name:Kairat Baial1004931529 Trn: 0963846718Tc
+1,074.40
+04/06
+04/06 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3410776096Es
+80,000.00
+04/07
+Orig CO Name:Bmo Bank               Orig ID:5362085229 Desc Date:260406 CO Entry
+Descr:Bmoachpmt Sec:CCD    Trace#:071000289035993 Eed:260407   Ind
+ID:000000007990886              Ind Name:Safe Line Inc. Trn: 0979035993Tc
+1,147.06
+04/07
+04/07 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3290226097Es
+45,000.00
+04/07
+04/07 Online ACH Payment 11214276809 To Mycompany (_#####1655)
+5,000.00
+04/08
+04/08 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3268516098Es
+150,000.00
+04/09
+Orig CO Name:Daimlertruckfin        Orig ID:1850860001 Desc Date:260409 CO Entry
+Descr:Payments  Sec:CCD    Trace#:021000024209675 Eed:260409   Ind ID:5002153834
+Ind Name:Safeline Inc Trn: 0994209675Tc
+7,733.20
+04/09
+Orig CO Name:Bmo Bank               Orig ID:5362085229 Desc Date:260408 CO Entry
+Descr:Bmoachpmt Sec:CCD    Trace#:071000281231327 Eed:260409   Ind
+ID:000000007996835              Ind Name:Safe Line Inc Trn: 0991231327Tc
+894.80
+ELECTRONIC WITHDRAWALS
+*start*electronic withdrawal
+*end*electronic withdrawal
+
+=== Страница 5 ===
+ 000000652971935
+10143910403000000064
+ 5 
+ 8
+Page
+of
+DATE
+DESCRIPTION
+AMOUNT
+ 
+April 01, 2026 through April 30, 2026
+Account Number:    
+04/09
+04/09 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3257596099Es
+155,000.00
+04/10
+Orig CO Name:Daimlertruckfin        Orig ID:1850860001 Desc Date:260410 CO Entry
+Descr:Payments  Sec:CCD    Trace#:021000021531178 Eed:260410   Ind ID:5002101955
+Ind Name:Safeline Inc Trn: 1001531178Tc
+3,267.86
+04/10
+Orig CO Name:Tab Bank               Orig ID:1870571941 Desc Date:260408 CO Entry
+Descr:Loan Pmnt Sec:PPD    Trace#:124384656319993 Eed:260410   Ind ID:
+Ind Name:Dayana Logistic Trn: 1006319993Tc
+1,782.68
+04/10
+Orig CO Name:Pegasustranstech       Orig ID:1901018808 Desc Date:260410 CO Entry
+Descr:Payment   Sec:PPD    Trace#:071000286355575 Eed:260410   Ind ID:
+Ind Name:Safe Line Inc Trn: 1006355575Tc
+822.70
+04/10
+Zelle Payment To Ake Group Zelle 28782514430
+7,500.00
+04/13
+Orig CO Name:Prepass                Orig ID:3860730202 Desc Date:A26100 CO Entry
+Descr:8007737277Sec:CCD    Trace#:091000018295573 Eed:260413   Ind
+ID:2W3Rrrbonom5Zy2              Ind Name:Safe Line Cargo Inc Trn: 1038295573Tc
+19,169.51
+04/13
+04/13 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3417666103Es
+180,000.00
+04/13
+04/13 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3887686103Es
+130,000.00
+04/13
+Zelle Payment To Ake Group Zelle 28815178367
+7,500.00
+04/13
+04/13 Online Realtime Vendor Payment  11215046894 Payment ID Reference#:
+8215046894Rx  To  Ake Group 6261
+13,000.00
+04/14
+Zelle Payment To Ake Group Zelle 28825007679
+7,500.00
+04/14
+04/14 Online Realtime Vendor Payment  11215178997 Payment ID Reference#:
+8215178997Rx  To  Ake Group 6261
+10,000.00
+04/14
+04/14 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3776536104Es
+115,000.00
+04/15
+Orig CO Name:Tab Bank               Orig ID:1870571941 Desc Date:260413 CO Entry
+Descr:Tab Bank  Sec:CCD    Trace#:124384657329259 Eed:260415   Ind
+ID:000000000000000              Ind Name:Safe Line Inc              00000500144426001 Tab Bank
+124384657 Trn: 1057329259Tc
+3,434.81
+04/15
+04/15 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3835826105Es
+114,000.00
+04/16
+Orig CO Name:Contract Payment       Orig ID:1221146430 Desc Date:260415 CO Entry
+Descr:Contract Psec:CCD    Trace#:041000121033376 Eed:260416   Ind ID:Cs-41216
+Ind Name:Dayana Logistics Inc.                                                                                        01
+Trn: 1061033376Tc
+3,880.65
+04/16
+04/16 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3221076103Es
+190,000.00
+04/16
+04/16 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3317106106Es
+90,000.00
+04/17
+Orig CO Name:Tab Bank               Orig ID:1870571941 Desc Date:260415 CO Entry
+Descr:Tab Bank  Sec:CCD    Trace#:124384651386890 Eed:260417   Ind
+ID:000000000000000              Ind Name:Dayana Logistic            00000500138842001 Tab
+Bank                                                        124384657 Trn: 1071386890Tc
+3,332.51
+04/17
+Orig CO Name:Pegasustranstech       Orig ID:1901018808 Desc Date:260417 CO Entry
+Descr:Payment   Sec:PPD    Trace#:071000281371899 Eed:260417   Ind ID:
+Ind Name:Safe Line Inc Trn: 1071371899Tc
+123.48
+04/17
+04/17 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3451406107Es
+220,000.00
+04/20
+Orig CO Name:Daimlertruckfin        Orig ID:1850860001 Desc Date:260420 CO Entry
+Descr:Payments  Sec:CCD    Trace#:021000026601178 Eed:260420   Ind ID:5002149914
+Ind Name:Safeline Inc Trn: 1106601178Tc
+3,738.13
+04/20
+Orig CO Name:Mitsubishi Hcc         Orig ID:3333308288 Desc Date:260420 CO Entry Descr:O
+4530    Sec:CCD    Trace#:071000281033445 Eed:260420   Ind ID:241037                       Ind
+Name:Nomad Black Line Inc.                                                                                        02 Trn:
+1101033445Tc
+2,020.10
+04/20
+04/18 Online Realtime Vendor Payment  11215858041 Payment ID Reference#:
+8215858041Rx  To  My Company 1655
+10,000.00
+ELECTRONIC WITHDRAWALS
+ (continued)
+*start*electronic withdrawal
+*end*electronic withdrawal
+
+=== Страница 6 ===
+ 000000652971935
+ 6 
+ 8
+Page
+of
+DATE
+DESCRIPTION
+AMOUNT
+ 
+April 01, 2026 through April 30, 2026
+Account Number:    
+04/20
+04/20 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3521756110Es
+150,000.00
+04/21
+Orig CO Name:Crossroads Equip       Orig ID:8000001750 Desc Date:260421 CO Entry
+Descr:Leasepaymesec:PPD    Trace#:021000029735471 Eed:260421   Ind ID:
+Ind Name:Dayana Logistics Inc. Trn: 1119735471Tc
+5,289.45
+04/22
+Orig CO Name:Irs                    Orig ID:3387702000 Desc Date:042226 CO Entry
+Descr:Usataxpymtsec:CCD    Trace#:061036013270573 Eed:260422   Ind
+ID:270651251591603              Ind Name:Safe Line Inc Trn: 1123270573Tc
+137.50
+04/23
+Orig CO Name:Prepass                Orig ID:3860730202 Desc Date:A26112 CO Entry
+Descr:8007737277Sec:CCD    Trace#:091000017830516 Eed:260423   Ind
+ID:2W5Yc2Ylode0Rq9              Ind Name:Safe Line Cargo Inc Trn: 1137830516Tc
+23,897.52
+04/23
+04/23 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3314446113Es
+400,000.00
+04/24
+Orig CO Name:Deutsche Leasing       Orig ID:1260717839 Desc Date:260424 CO Entry
+Descr:Lease Pmtssec:CCD    Trace#:071925445092084 Eed:260424   Ind
+ID:100-0050209-001              Ind Name:Dayana Logistics Inc Trn: 1145092084Tc
+10,988.19
+04/24
+Orig CO Name:Bmo Bank NA            Orig ID:1246827574 Desc Date:042326 CO Entry
+Descr:Bill Paymtsec:CCD    Trace#:071000284998101 Eed:260424   Ind ID:2139212
+Ind Name:Dayana Logistics Inc.                                                                                        Bill
+Payment Trn: 1144998101Tc
+2,382.43
+04/24
+Orig CO Name:Prepass                Orig ID:3860730202 Desc Date:A26113 CO Entry
+Descr:8007737277Sec:CCD    Trace#:091000015405619 Eed:260424   Ind
+ID:2W603V2Gn4G3Gma              Ind Name:Safe Line Cargo Inc Trn: 1145405619Tc
+600.00
+04/24
+Orig CO Name:Pegasustranstech       Orig ID:1901018808 Desc Date:260424 CO Entry
+Descr:Payment   Sec:PPD    Trace#:071000285002222 Eed:260424   Ind ID:
+Ind Name:Safe Line Inc Trn: 1145002222Tc
+41.16
+04/24
+04/24 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3416816114Es
+180,000.00
+04/27
+Orig CO Name:Daimlertruckfin        Orig ID:1850860001 Desc Date:260427 CO Entry
+Descr:Payments  Sec:CCD    Trace#:021000028840422 Eed:260427   Ind ID:5002154844
+Ind Name:Safeline Inc Trn: 1178840422Tc
+27,522.21
+04/27
+Orig CO Name:Daimlertruckfin        Orig ID:1850860001 Desc Date:260427 CO Entry
+Descr:Payments  Sec:CCD    Trace#:021000028840421 Eed:260427   Ind ID:5002142442
+Ind Name:Safeline Inc Trn: 1178840421Tc
+9,322.17
+04/27
+Orig CO Name:Crossroads Equip       Orig ID:8000001750 Desc Date:260425 CO Entry
+Descr:Leasepaymesec:PPD    Trace#:021000028875441 Eed:260427   Ind ID:
+Ind Name:Dayana Logistics Inc. Trn: 1178875441Tc
+3,060.25
+04/27
+Orig CO Name:Irs                    Orig ID:3387702000 Desc Date:042726 CO Entry
+Descr:Usataxpymtsec:CCD    Trace#:061036012288715 Eed:260427   Ind
+ID:270651744289512              Ind Name:Safe Line Inc Trn: 1172288715Tc
+1,690.41
+04/27
+Orig CO Name:Irs                    Orig ID:3387702000 Desc Date:042726 CO Entry
+Descr:Usataxpymtsec:CCD    Trace#:061036012288718 Eed:260427   Ind
+ID:270651741524977              Ind Name:Safe Line Inc Trn: 1172288718Tc
+1,367.24
+04/28
+Orig CO Name:Capital Premium        Orig ID:4820423224 Desc Date:260428 CO Entry
+Descr:Ins. Pmt  Sec:PPD    Trace#:091000018796463 Eed:260428   Ind ID:
+Ind Name:Safe Line Inc . Trn: 1188796463Tc
+26,034.59
+04/28
+Orig CO Name:Irs                    Orig ID:3387702000 Desc Date:042826 CO Entry
+Descr:Usataxpymtsec:CCD    Trace#:061036015850424 Eed:260428   Ind
+ID:270651862162247              Ind Name:Safe Line Inc Trn: 1185850424Tc
+412.05
+04/28
+Orig CO Name:Chase Credit Crd       Orig ID:4760039224 Desc Date:260427 CO Entry
+Descr:Autopaybussec:PPD    Trace#:021000025775167 Eed:260428   Ind ID:
+Ind Name:Baialiev Kairat Trn: 1185775167Tc
+115.80
+04/28
+04/28 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3434126118Es
+160,000.00
+04/29
+Orig CO Name:Huntington Natio       Orig ID:9359623000 Desc Date:       CO Entry
+Descr:Cashcd    Sec:CCD    Trace#:044000023244779 Eed:260429   Ind ID:1138218
+Ind Name:Safe Line Inc. Trn: 1193244779Tc
+2,751.63
+04/29
+Orig CO Name:Prepass                Orig ID:3860730202 Desc Date:B26118 CO Entry
+Descr:8007737277Sec:CCD    Trace#:091000013134315 Eed:260429   Ind
+ID:2W6Xaakqdp7Hhs2              Ind Name:Safe Line Cargo Inc Trn: 1193134315Tc
+1,400.00
+ELECTRONIC WITHDRAWALS
+ (continued)
+*start*electronic withdrawal
+*end*electronic withdrawal
+
+=== Страница 7 ===
+ 000000652971935
+10143910404000000064
+ 7 
+ 8
+Page
+of
+DATE
+DESCRIPTION
+AMOUNT
+DATE
+DESCRIPTION
+AMOUNT
+DATE
+DESCRIPTION
+AMOUNT
+ 
+ 
+ 
+April 01, 2026 through April 30, 2026
+Account Number:    
+Total Electronic Withdrawals
+$3,304,938.88
+Total Other Withdrawals
+$22,988.42
+04/29
+04/29 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3329436119Es
+250,000.00
+04/30
+Orig CO Name:Prepass                Orig ID:3860730202 Desc Date:A26119 CO Entry
+Descr:8007737277Sec:CCD    Trace#:091000014661558 Eed:260430   Ind
+ID:2W78Fyzab4K3AK9              Ind Name:Safe Line Cargo Inc Trn: 1204661558Tc
+800.00
+04/30
+04/30 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3475936120Es
+80,000.00
+04/30
+04/30 Online Domestic Wire Transfer A/C: Ake Group Inc Schaumburg IL 60173-2169 US Trn:
+3865226120Es
+55,000.00
+04/16
+04/16 Withdrawal
+$20,992.48 
+04/16
+04/16 Withdrawal
+1,995.94
+04/01
+Online Domestic Wire Fee
+$25.00  
+04/01
+Standard ACH Pmnts Initial Fee
+2.50
+04/02
+Online Domestic Wire Fee
+25.00
+04/03
+Online Domestic Wire Fee
+25.00
+04/06
+Online Domestic Wire Fee
+25.00
+04/07
+Online Domestic Wire Fee
+25.00
+04/08
+Online Domestic Wire Fee
+25.00
+04/09
+Online Domestic Wire Fee
+25.00
+04/10
+Domestic Incoming Wire Fee
+15.00
+04/13
+Online Domestic Wire Fee
+25.00
+04/13
+Online Domestic Wire Fee
+25.00
+04/13
+Domestic Incoming Wire Fee
+15.00
+04/14
+Online Domestic Wire Fee
+25.00
+04/14
+Domestic Incoming Wire Fee
+15.00
+04/15
+Online Domestic Wire Fee
+25.00
+04/15
+Domestic Incoming Wire Fee
+15.00
+04/16
+Online Domestic Wire Fee
+25.00
+04/16
+Online Domestic Wire Fee
+25.00
+04/16
+Domestic Incoming Wire Fee
+15.00
+04/16
+Official Checks Charge
+10.00
+04/16
+Official Checks Charge
+10.00
+04/16
+Official Checks Charge
+10.00
+04/16
+Official Checks Charge
+10.00
+04/16
+Official Checks Charge
+10.00
+04/16
+Official Checks Charge
+10.00
+04/16
+Official Checks Charge
+10.00
+04/16
+Official Checks Charge
+10.00
+04/16
+Official Checks Charge
+10.00
+04/16
+Official Checks Charge
+10.00
+04/17
+Online Domestic Wire Fee
+25.00
+04/20
+Online Domestic Wire Fee
+25.00
+ELECTRONIC WITHDRAWALS
+OTHER WITHDRAWALS
+FEES
+ (continued)
+*start*electronic withdrawal
+*end*electronic withdrawal
+*start*other withdrawals
+*end*other withdrawals
+*start*fees section
+*end*fees section
+
+=== Страница 8 ===
+ 000000652971935
+ 8 
+ 8
+Page
+of
+DATE
+DESCRIPTION
+AMOUNT
+DATE
+AMOUNT
+DATE
+AMOUNT
+DATE
+AMOUNT
+ 
+IN CASE OF ERRORS OR QUESTIONS ABOUT YOUR ELECTRONIC FUNDS TRANSFERS: 
+For personal accounts only:
+For business accounts,
+IN CASE OF ERRORS OR QUESTIONS ABOUT NON-ELECTRONIC FUNDS TRANSFERS
+JPMorgan Chase Bank, N.A. Member FDIC
+April 01, 2026 through April 30, 2026
+Account Number:    
+ 
+Call us at 1-866-564-2262 or write us at the address on the front of this statement immediately if you think your statement or receipt is incorrect or if 
+you need more information about a transfer listed on the statement or receipt.
+ We must hear from you no later than 60 days after we sent you the FIRST statement on which the problem or error 
+appeared. Be prepared to give us the following information:
+Your name and account number;
+A description of the error or the transaction you are unsure about, and why you think it is an error or want more information; and
+The amount of the suspected error.
+We will investigate your complaint and will correct any error promptly.  If we take more than 10 business days (or 20 business days for new 
+accounts) to do this, we will provide provisional credit to your account for the amount you think is in error so that you will have use of the money 
+during the time it takes us to complete our investigation.
+ our practice is to follow the procedures described above as detailed in your Deposit Account Agreement or other 
+applicable agreements, but we are not legally required to do so. For example, we require you to notify us no later than 30 days after we sent you 
+the first statement on which the error appeared. We may require you to provide us with a written statement that the disputed transaction was 
+unauthorized. We are also not required to give provisional credit.
+: Contact us immediately if your statement is 
+incorrect or if you need more information about any non-electronic funds transfers on this statement. For more details, see your Deposit Account 
+Agreement or other applicable agreements that govern your account.
+  
+Total Fees
+$792.50
+04/22
+Domestic Incoming Wire Fee
+15.00
+04/23
+Online Domestic Wire Fee
+25.00
+04/23
+Domestic Incoming Wire Fee
+15.00
+04/24
+Online Domestic Wire Fee
+25.00
+04/24
+Domestic Incoming Wire Fee
+15.00
+04/27
+Domestic Incoming Wire Fee
+15.00
+04/28
+Online Domestic Wire Fee
+25.00
+04/29
+Online Domestic Wire Fee
+25.00
+04/29
+Domestic Incoming Wire Fee
+15.00
+04/30
+Online Domestic Wire Fee
+25.00
+04/30
+Online Domestic Wire Fee
+25.00
+04/30
+Monthly Service Fee
+15.00
+04/01
+$5,635.59
+04/13
+1,263.61
+04/22
+319,953.31
+04/02
+6,135.54
+04/14
+1,516.33
+04/23
+26,357.54
+04/03
+5,958.10
+04/15
+20,146.42
+04/24
+44,638.74
+04/06
+7,559.50
+04/16
+60,889.34
+04/27
+67,740.26
+04/07
+3,691.82
+04/17
+40,821.33
+04/28
+24,134.38
+04/08
+13,429.19
+04/20
+28,593.30
+04/29
+38,222.37
+04/09
+12,345.89
+04/21
+126,920.77
+04/30
+5,665.44
+04/10
+203,942.65
+FEES
+DAILY ENDING BALANCE
+ (continued)
+•
+•
+•
+*start*fees section
+*end*fees section
+*start*daily ending balance2
+*end*daily ending balance2
+*start*dre portrait disclosure message area
+*end*dre portrait disclosure message area
+
