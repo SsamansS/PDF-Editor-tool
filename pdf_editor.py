@@ -271,7 +271,8 @@ def cmd_edit_open(args):
     except ImportError:
         sys.exit("Нужен PyMuPDF: pip install pymupdf")
 
-    doc = fitz.open(args.input)
+    with open(args.input, "rb") as pdf_file:
+        doc = fitz.open(stream=pdf_file.read(), filetype="pdf")
     with open(args.output, "w", encoding="utf-8") as f:
         for i in range(len(doc)):
             f.write(f"=== Страница {i + 1} ===\n")
@@ -283,10 +284,55 @@ def cmd_edit_open(args):
     print(f"  python pdf_editor.py edit-apply {args.input} {args.output} <результат.pdf>")
 
 
+def _fontsize_from_rect(rect):
+    """Оценивает размер шрифта по высоте bbox в экранных координатах страницы.
+
+    span['size'] из get_text('dict') возвращает размер до трансформации CTM —
+    в некоторых PDF (банки, офисные генераторы) это близко к нулю.
+    Высота rect из search_for() уже в точках пользовательского пространства
+    и надёжнее отражает реальный отображаемый размер.
+    """
+    h = rect.height
+    # search_for возвращает bbox строки целиком; шрифт ≈ 80–90% высоты строки
+    return round(h * 0.85, 1) if h > 1 else 9.0
+
+
+def _span_style_at(page, rect):
+    """Возвращает (fontname, fontsize) для замены в rect.
+
+    Имя шрифта маппится на ближайший базовый PDF-шрифт по стилю (bold/italic).
+    Размер берётся из высоты rect (надёжнее, чем span['size'] с CTM-артефактами).
+    """
+    import fitz
+
+    best_fontname = "Helv"
+    best_overlap = 0.0
+
+    for block in page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE)["blocks"]:
+        for line in block.get("lines", []):
+            for span in line.get("spans", []):
+                # & возвращает новый Rect без мутации оригинала (intersect() — in-place)
+                overlap = (rect & fitz.Rect(span["bbox"])).get_area()
+                if overlap > best_overlap:
+                    best_overlap = overlap
+                    fn = span["font"].lower()
+                    if "bold" in fn and ("italic" in fn or "oblique" in fn):
+                        best_fontname = "Helv-BoldOblique"
+                    elif "bold" in fn:
+                        best_fontname = "Helv-Bold"
+                    elif "italic" in fn or "oblique" in fn:
+                        best_fontname = "Helv-Oblique"
+                    else:
+                        best_fontname = "Helv"
+
+    return best_fontname, _fontsize_from_rect(rect)
+
+
 def cmd_edit_apply(args):
     """Применяет отредактированный TXT к оригинальному PDF: заменяет изменившийся текст на исходных позициях.
 
     Изображения, таблицы и прочие элементы остаются нетронутыми.
+    Шрифт и размер подбираются по оригинальному спану, чтобы минимизировать сдвиг текста.
     Вставка принципиально новых строк (которых не было в оригинале) невозможна —
     такие строки будут перечислены в предупреждениях.
     """
@@ -295,14 +341,19 @@ def cmd_edit_apply(args):
     except ImportError:
         sys.exit("Нужен PyMuPDF: pip install pymupdf")
 
-    with open(args.txt, "r", encoding="utf-8") as f:
-        content = f.read()
+    # utf-8-sig убирает BOM если VS Code сохранил с ним; нормализуем \r\n → \n
+    with open(args.txt, "r", encoding="utf-8-sig") as f:
+        content = f.read().replace("\r\n", "\n").replace("\r", "\n")
 
     edited_pages = _parse_txt_pages(content)
     if not edited_pages:
-        sys.exit("Не найдено ни одного маркера '=== Страница N ===' в файле. Используйте edit-open для экспорта.")
+        sys.exit(
+            "Не найдено ни одного маркера '=== Страница N ===' в файле.\n"
+            "Убедитесь, что файл создан через edit-open и сохранён в UTF-8."
+        )
 
-    doc = fitz.open(args.input)
+    with open(args.input, "rb") as pdf_file:
+        doc = fitz.open(stream=pdf_file.read(), filetype="pdf")
     total_replaced = 0
     total_deleted = 0
     skipped_inserts = 0
@@ -335,7 +386,8 @@ def cmd_edit_apply(args):
                 for k, old_line in enumerate(old_block):
                     replacement = new_block[k].strip() if tag == "replace" and k < len(new_block) else ""
                     for rect in page.search_for(old_line.strip()):
-                        page.add_redact_annot(rect, replacement)
+                        fontname, fontsize = _span_style_at(page, rect)
+                        page.add_redact_annot(rect, replacement, fontname=fontname, fontsize=fontsize)
                         if replacement:
                             total_replaced += 1
                         else:
