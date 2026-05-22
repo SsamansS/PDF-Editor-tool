@@ -563,7 +563,7 @@ def replace_text(
                 if rect.is_empty:
                     continue
                 fontname, fontsize, color, baseline_y = _replacement_style_at(page, rect)
-                page.add_redact_annot(_expanded_rect(rect, page.rect), fill=(1, 1, 1))
+                page.add_redact_annot(_expanded_rect(rect, page.rect), fill=None)
                 max_width = _available_inline_width(page, rect)
                 replacements.append((rect, fontname, fontsize, color, baseline_y, max_width))
                 total_matches += 1
@@ -695,67 +695,7 @@ def _visible_line_chars(line: dict) -> list[tuple[dict, dict]]:
     return chars
 
 
-def _runs_of_changes(old_text: str, new_text: str):
-    start = None
-    for index, (old_char, new_char) in enumerate(zip(old_text, new_text)):
-        if old_char != new_char and start is None:
-            start = index
-        elif old_char == new_char and start is not None:
-            yield start, index
-            start = None
-    if start is not None:
-        yield start, len(old_text)
-
-
-def _overlay_equal_length_line_edits(page, original_block: dict, new_text: str):
-    import fitz
-
-    old_lines = []
-    line_chars = []
-    for line in original_block.get("lines", []):
-        chars = _visible_line_chars(line)
-        text = "".join(char["c"] for char, _span in chars).rstrip()
-        old_lines.append(text)
-        line_chars.append(chars[: len(text)])
-
-    new_lines = new_text.split("\n")
-    if len(old_lines) != len(new_lines):
-        return False, 0
-    if any(len(old_line) != len(new_line) for old_line, new_line in zip(old_lines, new_lines)):
-        return False, 0
-
-    replacements = []
-    for old_line, new_line, chars in zip(old_lines, new_lines, line_chars):
-        for start, end in _runs_of_changes(old_line, new_line):
-            changed_chars = chars[start:end]
-            if not changed_chars:
-                continue
-            first_span = changed_chars[0][1]
-            rect = _rect_from_chars(changed_chars)
-            origin = changed_chars[0][0].get("origin", (rect.x0, rect.y1))
-            replacement_text = new_line[start:end]
-            fontname = _base_font_name(first_span.get("font"))
-            fontsize = _fontsize_from_rect(rect)
-            text_width = fitz.get_text_length(replacement_text, fontname=fontname, fontsize=fontsize)
-            scale_x = rect.width / text_width if text_width > 0 else 1.0
-            replacements.append((rect, fitz.Point(origin), replacement_text, fontname, fontsize, _span_color_to_rgb(first_span.get("color")), scale_x))
-
-    for rect, origin, text, fontname, fontsize, color, scale_x in replacements:
-        page.draw_rect(rect, color=(1, 1, 1), fill=(1, 1, 1), overlay=True)
-        page.insert_text(
-            origin,
-            text,
-            fontsize=fontsize,
-            fontname=_font_for_text(page, text, fontname),
-            color=color,
-            morph=(origin, fitz.Matrix(scale_x, 1)),
-            overlay=True,
-        )
-
-    return True, len(replacements)
-
-
-def _overlay_same_line_count_edits(page, original_block: dict, new_text: str) -> tuple[bool, int]:
+def _redact_same_line_count_edits(page, original_block: dict, new_text: str) -> tuple[bool, int]:
     import fitz
 
     original_lines = []
@@ -789,8 +729,11 @@ def _overlay_same_line_count_edits(page, original_block: dict, new_text: str) ->
             continue
         replacements.append((*style, new_line))
 
+    for rect, _origin, _fontname, _fontsize, _color, _line_text in replacements:
+        page.add_redact_annot(_expanded_rect(rect, page.rect, pad=0.6), fill=None)
+
+    page.apply_redactions()
     for rect, origin, fontname, fontsize, color, line_text in replacements:
-        page.draw_rect(_expanded_rect(rect, page.rect, pad=0.6), color=(1, 1, 1), fill=(1, 1, 1), overlay=True)
         _insert_inline_replacement(page, rect, line_text, fontname, fontsize, color, origin.y, max_width=rect.width)
 
     return True, len(replacements)
@@ -827,11 +770,7 @@ def _apply_block_edits(doc, edited_blocks: dict[int, list[dict]]) -> tuple[int, 
                 continue
 
             if block_id < len(raw_blocks):
-                handled, replacements = _overlay_equal_length_line_edits(page, raw_blocks[block_id], new_text)
-                if handled:
-                    changed += replacements
-                    continue
-                handled, replacements = _overlay_same_line_count_edits(page, raw_blocks[block_id], new_text)
+                handled, replacements = _redact_same_line_count_edits(page, raw_blocks[block_id], new_text)
                 if handled:
                     changed += replacements
                     continue
@@ -840,7 +779,7 @@ def _apply_block_edits(doc, edited_blocks: dict[int, list[dict]]) -> tuple[int, 
             if rect.is_empty:
                 continue
 
-            page.add_redact_annot(_expanded_rect(rect, page.rect), fill=(1, 1, 1))
+            page.add_redact_annot(_expanded_rect(rect, page.rect), fill=None)
             pending.append((rect, new_text, item["fontname"], item["fontsize"], item["color"]))
             if new_text.strip():
                 changed += 1
