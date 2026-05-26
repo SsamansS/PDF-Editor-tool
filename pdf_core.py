@@ -48,6 +48,8 @@ class EditApplyResult:
 
 
 PAGE_MARKER_RE = re.compile(r"^=== Страница (\d+) ===$", re.MULTILINE)
+_CMAP_BFCHAR_RE = re.compile(r"<([0-9A-Fa-f]{2})><([0-9A-Fa-f]{4})>")
+_CMAP_BFRANGE_RE = re.compile(r"<([0-9A-Fa-f]{2})><([0-9A-Fa-f]{2})><([0-9A-Fa-f]{4})>")
 BLOCK_MARKER_RE = re.compile(
     r"^\[\[PDFTXT page=(\d+) block=(\d+) "
     r"bbox=([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+) "
@@ -530,6 +532,150 @@ def _insert_inline_replacement(
     return True, scale_x
 
 
+def _parse_tou_cmap(stream: bytes) -> dict[str, int]:
+    """Parse a ToUnicode CMap stream. Returns {unicode_char: glyph_byte}."""
+    try:
+        text = stream.decode("latin-1")
+    except Exception:
+        return {}
+    result: dict[str, int] = {}
+    for m in _CMAP_BFCHAR_RE.finditer(text):
+        result[chr(int(m.group(2), 16))] = int(m.group(1), 16)
+    for m in _CMAP_BFRANGE_RE.finditer(text):
+        start_byte = int(m.group(1), 16)
+        end_byte = int(m.group(2), 16)
+        start_cp = int(m.group(3), 16)
+        for i in range(end_byte - start_byte + 1):
+            result[chr(start_cp + i)] = start_byte + i
+    return result
+
+
+def _get_page_font_cmaps(doc, page) -> dict[str, dict[str, int]]:
+    """Return {font_resource_name: cmap} for fonts that have a ToUnicode CMap."""
+    result: dict[str, dict[str, int]] = {}
+    for font_info in page.get_fonts():
+        xref = font_info[0]
+        name = font_info[4]
+        try:
+            font_obj = doc.xref_object(xref)
+        except Exception:
+            continue
+        m = re.search(r"/ToUnicode\s+(\d+)\s+0\s+R", font_obj)
+        if not m:
+            continue
+        try:
+            cmap = _parse_tou_cmap(doc.xref_stream(int(m.group(1))))
+        except Exception:
+            continue
+        if cmap:
+            result[name] = cmap
+    return result
+
+
+def _encode_for_font(text: str, cmap: dict[str, int]) -> bytes | None:
+    """Encode text via a font CMap. Returns None if any character is absent."""
+    try:
+        return bytes(cmap[ch] for ch in text)
+    except KeyError:
+        return None
+
+
+def _replace_in_pdf_strings(
+    content: bytes,
+    replacements: list[tuple[bytes, bytes]],
+    limit: int | None = None,
+) -> tuple[bytes, int]:
+    """Replace byte sequences only inside PDF string literals (...)."""
+    count = 0
+    result = bytearray()
+    i = 0
+    n = len(content)
+    while i < n:
+        if content[i] == ord("("):
+            j = i + 1
+            depth = 1
+            while j < n and depth > 0:
+                b = content[j]
+                if b == ord("\\"):
+                    j += 2
+                    continue
+                if b == ord("("):
+                    depth += 1
+                elif b == ord(")"):
+                    depth -= 1
+                j += 1
+            inner = bytearray(content[i + 1 : j - 1])
+            for old_bytes, new_bytes in replacements:
+                if limit is not None and count >= limit:
+                    break
+                pos = 0
+                while True:
+                    if limit is not None and count >= limit:
+                        break
+                    idx = inner.find(old_bytes, pos)
+                    if idx < 0:
+                        break
+                    inner[idx : idx + len(old_bytes)] = new_bytes
+                    count += 1
+                    pos = idx + len(new_bytes)
+            result.extend(b"(")
+            result.extend(inner)
+            result.extend(b")")
+            i = j
+        else:
+            result.append(content[i])
+            i += 1
+    return bytes(result), count
+
+
+def _content_stream_replace(doc, page, old: str, new: str, limit: int | None) -> int:
+    """Replace old→new in the page content stream using font CMap encodings.
+
+    Preserves the original glyph rendering (including Type 3 fonts) exactly.
+    Returns the number of replacements made.
+    """
+    replacements: list[tuple[bytes, bytes]] = []
+
+    # Standard Latin-1 fonts (Helvetica, Times-Roman, etc.) store text as ASCII
+    try:
+        old_ascii = old.encode("latin-1")
+        new_ascii = new.encode("latin-1")
+        if old_ascii != new_ascii:
+            replacements.append((old_ascii, new_ascii))
+    except (UnicodeEncodeError, LookupError):
+        pass
+
+    # Custom-encoded fonts (often Type 3): use ToUnicode CMap
+    seen: set[bytes] = {r[0] for r in replacements}
+    for cmap in _get_page_font_cmaps(doc, page).values():
+        old_enc = _encode_for_font(old, cmap)
+        if old_enc is None or old_enc in seen:
+            continue
+        new_enc = _encode_for_font(new, cmap)
+        if new_enc is None or old_enc == new_enc:
+            continue
+        replacements.append((old_enc, new_enc))
+        seen.add(old_enc)
+
+    if not replacements:
+        return 0
+
+    content_xrefs = page.get_contents()
+    if not content_xrefs:
+        return 0
+    if len(content_xrefs) > 1:
+        page.clean_contents()
+        content_xrefs = page.get_contents()
+        if not content_xrefs:
+            return 0
+
+    content = page.read_contents()
+    new_content, count = _replace_in_pdf_strings(content, replacements, limit)
+    if count > 0:
+        doc.update_stream(content_xrefs[0], new_content)
+    return count
+
+
 def replace_text(
     input_path: str | os.PathLike[str],
     output: str | os.PathLike[str],
@@ -542,6 +688,8 @@ def replace_text(
 
     if not old:
         raise PdfEditorError("Искомый текст не должен быть пустым.")
+    if old == new:
+        return ReplaceResult(matches=0, overflow=0, output=None)
 
     doc = _open_fitz(input_path)
     try:
@@ -555,27 +703,40 @@ def replace_text(
                 continue
 
             page = doc[page_index]
-            replacements = []
+            remaining = limit - total_matches if limit is not None else None
+
+            # Phase 1: content stream replacement — preserves original font glyphs exactly
+            stream_count = _content_stream_replace(doc, page, old, new, remaining)
+            total_matches += stream_count
+
+            if limit is not None and total_matches >= limit:
+                break
+
+            # Phase 2: redact+insert fallback for any occurrences still present
+            # (e.g. fonts whose encoding of new text is unavailable in the CMap)
+            remaining = limit - total_matches if limit is not None else None
+            pending = []
             for rect in page.search_for(old):
-                if limit is not None and total_matches >= limit:
+                if remaining is not None and len(pending) >= remaining:
                     break
+                # search_for is case-insensitive; verify the hit actually contains old
+                if old not in page.get_textbox(rect):
+                    continue
                 rect = rect & page.rect
                 if rect.is_empty:
                     continue
                 fontname, fontsize, color, baseline_y = _replacement_style_at(page, rect)
                 page.add_redact_annot(_expanded_rect(rect, page.rect), fill=None)
                 max_width = _available_inline_width(page, rect)
-                replacements.append((rect, fontname, fontsize, color, baseline_y, max_width))
+                pending.append((rect, fontname, fontsize, color, baseline_y, max_width))
                 total_matches += 1
 
-            if not replacements:
-                continue
-
-            page.apply_redactions()
-            for rect, fontname, fontsize, color, baseline_y, max_width in replacements:
-                ok, _scale_x = _insert_inline_replacement(page, rect, new, fontname, fontsize, color, baseline_y, max_width)
-                if not ok:
-                    total_overflow += 1
+            if pending:
+                page.apply_redactions()
+                for rect, fontname, fontsize, color, baseline_y, max_width in pending:
+                    ok, _ = _insert_inline_replacement(page, rect, new, fontname, fontsize, color, baseline_y, max_width)
+                    if not ok:
+                        total_overflow += 1
 
             if limit is not None and total_matches >= limit:
                 break

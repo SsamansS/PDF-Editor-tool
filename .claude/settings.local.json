@@ -12,7 +12,8 @@
       "PowerShell([Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $env:PYTHONUTF8 = \"1\"; python \"e:\\\\Корень\\\\RunPro\\\\PDF Editor tool\\\\pdf_editor.py\" edit-apply \"Safe apr.pdf\" \"Safe apr_edited.txt\" \"Safe apr_result.pdf\")",
       "PowerShell($env:PYTHONUTF8 = \"1\"; Set-Location \"e:\\\\Корень\\\\RunPro\\\\PDF Editor tool\"; python pdf_editor.py edit-apply \"Safe apr.pdf\" \"Safe apr_edited.txt\" \"Safe apr_result.pdf\")",
       "PowerShell($env:PYTHONUTF8 = \"1\"; Set-Location \"e:\\\\Корень\\\\RunPro\\\\PDF Editor tool\"; python pdf_editor.py edit-open \"SafeApr.pdf\" \"SafeApr_txt.txt\")",
-      "PowerShell($env:PYTHONUTF8 = \"1\"; Set-Location \"e:\\\\Корень\\\\RunPro\\\\PDF Editor tool\"; python -c \"import fitz; res=fitz.open\\(stream=open\\('результат.pdf','rb'\\).read\\(\\),filetype='pdf'\\); res[1].get_pixmap\\(matrix=fitz.Matrix\\(3,3\\),clip=fitz.Rect\\(60,120,900,200\\)\\).save\\('check_final.png'\\)\")"
+      "PowerShell($env:PYTHONUTF8 = \"1\"; Set-Location \"e:\\\\Корень\\\\RunPro\\\\PDF Editor tool\"; python -c \"import fitz; res=fitz.open\\(stream=open\\('результат.pdf','rb'\\).read\\(\\),filetype='pdf'\\); res[1].get_pixmap\\(matrix=fitz.Matrix\\(3,3\\),clip=fitz.Rect\\(60,120,900,200\\)\\).save\\('check_final.png'\\)\")",
+      "Bash(python pdf_editor.py replace SafeApr.pdf результат_stream.pdf \"Orig\" \"girO\")"
     ]
   }
 }
