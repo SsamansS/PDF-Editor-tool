@@ -1,8 +1,9 @@
-"""Dependency-light local web interface for the PDF Editor tool."""
+"""Local web interface for the PDF Editor tool — PDF.js based block editor."""
 
 from __future__ import annotations
 
-import html
+import json
+import os
 import sys
 import threading
 import webbrowser
@@ -10,19 +11,27 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
-from pdf_core import PdfEditorError, add_watermark, extract_text, get_info, replace_text, write_edit_text
+from pdf_core import (
+    BlockInfo,
+    PdfEditorError,
+    get_info,
+    get_page_blocks,
+    replace_block,
+)
 
 
 WORKSPACE = Path(__file__).resolve().parent
+STATIC = WORKSPACE / "static"
+
+# session state: original_path (str) -> list of applied ops
+# each op: {"page": int, "bbox": [x0,y0,x1,y1], "old": str, "new": str}
+_sessions: dict[str, list[dict]] = {}
+_sessions_lock = threading.Lock()
 
 
-def _pdf_choices() -> list[Path]:
-    return sorted(WORKSPACE.glob("*.pdf"))
-
-
-def _default_output(input_path: Path, suffix: str) -> str:
-    return str(input_path.with_name(f"{input_path.stem}_{suffix}.pdf"))
-
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def _resolve_pdf(value: str) -> Path:
     if not value:
@@ -35,274 +44,374 @@ def _resolve_pdf(value: str) -> Path:
     return path
 
 
-def _render_page(path_value: str, page_value: str, zoom_value: str) -> tuple[bytes, str]:
-    import fitz
-
-    path = _resolve_pdf(path_value)
-    page_index = max(int(page_value or "0"), 0)
-    zoom = min(max(float(zoom_value or "1.2"), 0.5), 3.0)
-    doc = fitz.open(str(path))
-    try:
-        if doc.needs_pass:
-            raise PdfEditorError("Предпросмотр защищённых паролем PDF пока не поддерживается.")
-        page_index = min(page_index, len(doc) - 1)
-        page = doc[page_index]
-        pixmap = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
-        return pixmap.tobytes("png"), "image/png"
-    finally:
-        doc.close()
+def _edited_path(original: Path) -> Path:
+    return original.with_name(f"{original.stem}_edited.pdf")
 
 
-def _form_value(fields: dict[str, list[str]], key: str, default: str = "") -> str:
-    return fields.get(key, [default])[0].strip()
+def _current_pdf(original: Path) -> Path:
+    ep = _edited_path(original)
+    return ep if ep.is_file() else original
 
 
-def _handle_action(fields: dict[str, list[str]]) -> tuple[str, str]:
-    action = _form_value(fields, "action")
-    input_path = _resolve_pdf(_form_value(fields, "pdf_path"))
+def _rebuild_edited(original: Path, ops: list[dict]) -> None:
+    """Apply ops sequentially from original, writing to _edited.pdf."""
+    import shutil
 
-    if action == "info":
-        info = get_info(input_path)
-        text_layer = "есть" if info.has_text_layer else "нет"
-        details = [
-            f"Файл: {info.path}",
-            f"Размер: {info.size_kb:.1f} KB",
-            f"Страниц: {info.page_count}",
-            f"Текстовый слой: {text_layer}",
-        ]
-        return "Информация", "\n".join(details)
+    ep = _edited_path(original)
+    if not ops:
+        if ep.is_file():
+            ep.unlink()
+        return
 
-    if action == "replace":
-        output = _form_value(fields, "output") or _default_output(input_path, "edited")
-        pages = _form_value(fields, "pages") or None
-        max_matches = int(_form_value(fields, "max_matches", "0") or "0")
-        result = replace_text(
-            input_path,
-            output,
-            _form_value(fields, "old_text"),
-            _form_value(fields, "new_text"),
-            pages,
-            max_matches,
+    # Start from original for each rebuild
+    src = original
+    tmp = ep.with_suffix(".tmp.pdf")
+    for op in ops:
+        replace_block(
+            src,
+            str(tmp),
+            op["page"],
+            tuple(op["bbox"]),
+            op["old"],
+            op["new"],
         )
-        if result.matches == 0:
-            return "Замена текста", "Текст не найден. Возможно, PDF является сканом."
-        note = f"Заменено: {result.matches}. Файл: {result.output}"
-        if result.overflow:
-            note += f"\nНе поместилось в исходную область: {result.overflow}"
-        return "Замена текста", note
+        if tmp.is_file():
+            shutil.move(str(tmp), str(ep))
+            src = ep
+        # If replace_block returned False (no change), src stays as-is
 
-    if action == "text":
-        output = _form_value(fields, "txt_output") or str(input_path.with_suffix(".txt"))
-        chars = extract_text(input_path, output)
-        return "Извлечение текста", f"Сохранено: {output}\nСимволов: {chars}"
-
-    if action == "edit_open":
-        output = _form_value(fields, "txt_output") or str(input_path.with_name(f"{input_path.stem}_editable.txt"))
-        pages = write_edit_text(input_path, output)
-        return "TXT для правки", f"Создано: {output}\nСтраниц: {pages}"
-
-    if action == "watermark":
-        output = _form_value(fields, "output") or _default_output(input_path, "watermark")
-        pages = add_watermark(input_path, output, _form_value(fields, "watermark_text", "DRAFT"))
-        return "Водяной знак", f"Сохранено: {output}\nСтраниц: {pages}"
-
-    raise PdfEditorError("Неизвестное действие.")
+    # If src is still original (all ops were no-ops), remove any stale _edited
+    if src == original and ep.is_file():
+        ep.unlink()
 
 
-def _page_html(pdf_path: str = "", message_title: str = "", message: str = "", page: int = 0, zoom: float = 1.2) -> bytes:
-    pdfs = _pdf_choices()
-    selected = _resolve_selected(pdf_path, pdfs)
-    preview_src = ""
-    page_count = 0
-    if selected:
-        try:
-            info = get_info(selected)
-            page_count = info.page_count
-            preview_src = f"/preview?path={quote(str(selected))}&page={page}&zoom={zoom}"
-        except Exception as exc:
-            message_title = "Предпросмотр"
-            message = str(exc)
-
-    options = "\n".join(
-        f'<option value="{html.escape(str(path))}" {"selected" if selected == path else ""}>{html.escape(path.name)}</option>'
-        for path in pdfs
-    )
-    selected_text = html.escape(str(selected or pdf_path or ""))
-    message_block = ""
-    if message:
-        message_block = f"""
-        <section class="notice">
-          <strong>{html.escape(message_title)}</strong>
-          <pre>{html.escape(message)}</pre>
-        </section>
-        """
-
-    next_page = min(page + 1, max(page_count - 1, 0))
-    prev_page = max(page - 1, 0)
-    body = f"""<!doctype html>
-<html lang="ru">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PDF Editor</title>
-  <style>
-    body {{ margin: 0; font-family: Segoe UI, Arial, sans-serif; background: #f5f5f5; color: #202020; }}
-    header {{ display: flex; gap: 10px; align-items: center; padding: 12px 16px; background: #ffffff; border-bottom: 1px solid #ddd; }}
-    h1 {{ font-size: 18px; margin: 0 14px 0 0; }}
-    main {{ display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 14px; padding: 14px; height: calc(100vh - 58px); box-sizing: border-box; }}
-    .viewer {{ overflow: auto; display: grid; place-items: start center; background: #e9e9e9; border: 1px solid #d0d0d0; }}
-    .viewer img {{ margin: 16px; background: white; box-shadow: 0 1px 10px rgba(0,0,0,.16); }}
-    .panel {{ overflow: auto; display: flex; flex-direction: column; gap: 12px; }}
-    section {{ background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px; }}
-    h2 {{ font-size: 15px; margin: 0 0 10px; }}
-    label {{ display: block; font-size: 12px; color: #555; margin: 8px 0 4px; }}
-    input, select, button {{ font: inherit; box-sizing: border-box; }}
-    input, select {{ width: 100%; padding: 8px; border: 1px solid #c8c8c8; border-radius: 6px; background: white; }}
-    button {{ padding: 8px 10px; border: 1px solid #b8b8b8; border-radius: 6px; background: #fff; cursor: pointer; }}
-    button.primary {{ background: #1b5e9e; color: #fff; border-color: #1b5e9e; width: 100%; margin-top: 10px; }}
-    .row {{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }}
-    .notice pre {{ white-space: pre-wrap; margin: 8px 0 0; }}
-    @media (max-width: 900px) {{ main {{ grid-template-columns: 1fr; height: auto; }} .viewer {{ min-height: 70vh; }} }}
-  </style>
-</head>
-<body>
-  <header>
-    <h1>PDF Editor</h1>
-    <form method="get" action="/" style="display:flex; gap:8px; align-items:center; flex:1;">
-      <select name="path">{options}</select>
-      <input name="custom_path" value="{selected_text}" placeholder="Или полный путь к PDF">
-      <input type="hidden" name="page" value="{page}">
-      <input type="hidden" name="zoom" value="{zoom}">
-      <button>Открыть</button>
-    </form>
-  </header>
-  <main>
-    <div class="viewer">
-      {f'<img src="{preview_src}" alt="Предпросмотр страницы">' if preview_src else '<p>Выберите PDF из списка или укажите путь.</p>'}
-    </div>
-    <aside class="panel">
-      {message_block}
-      <section>
-        <h2>Навигация</h2>
-        <div class="row">
-          <a href="/?path={quote(str(selected or ''))}&page={prev_page}&zoom={zoom}"><button type="button">Назад</button></a>
-          <a href="/?path={quote(str(selected or ''))}&page={next_page}&zoom={zoom}"><button type="button">Вперёд</button></a>
-        </div>
-        <div class="row" style="margin-top:8px;">
-          <a href="/?path={quote(str(selected or ''))}&page={page}&zoom={max(0.5, zoom - 0.2):.1f}"><button type="button">-</button></a>
-          <a href="/?path={quote(str(selected or ''))}&page={page}&zoom={min(3.0, zoom + 0.2):.1f}"><button type="button">+</button></a>
-        </div>
-        <p>Страница {page + 1 if selected else 0} из {page_count}</p>
-      </section>
-      <section>
-        <h2>Замена текста</h2>
-        <form method="post" action="/action">
-          <input type="hidden" name="action" value="replace">
-          <input type="hidden" name="pdf_path" value="{selected_text}">
-          <label>Найти</label><input name="old_text">
-          <label>Заменить</label><input name="new_text">
-          <label>Страницы, например 1 3 5-8</label><input name="pages">
-          <label>Максимум замен, 0 без ограничения</label><input name="max_matches" value="0">
-          <label>Выходной PDF</label><input name="output" value="{html.escape(_default_output(selected, 'edited') if selected else '')}">
-          <button class="primary">Заменить и сохранить</button>
-        </form>
-      </section>
-      <section>
-        <h2>Другие действия</h2>
-        <form method="post" action="/action">
-          <input type="hidden" name="pdf_path" value="{selected_text}">
-          <label>TXT файл</label><input name="txt_output" value="{html.escape(str(selected.with_suffix('.txt')) if selected else '')}">
-          <div class="row" style="margin-top:8px;">
-            <button name="action" value="text">Извлечь текст</button>
-            <button name="action" value="edit_open">TXT для правки</button>
-          </div>
-        </form>
-        <form method="post" action="/action" style="margin-top:10px;">
-          <input type="hidden" name="action" value="watermark">
-          <input type="hidden" name="pdf_path" value="{selected_text}">
-          <label>Текст водяного знака</label><input name="watermark_text" value="DRAFT">
-          <label>Выходной PDF</label><input name="output" value="{html.escape(_default_output(selected, 'watermark') if selected else '')}">
-          <button class="primary">Добавить водяной знак</button>
-        </form>
-        <form method="post" action="/action" style="margin-top:10px;">
-          <input type="hidden" name="action" value="info">
-          <input type="hidden" name="pdf_path" value="{selected_text}">
-          <button>Показать информацию</button>
-        </form>
-      </section>
-    </aside>
-  </main>
-</body>
-</html>"""
-    return body.encode("utf-8")
+def _json_response(data) -> bytes:
+    return json.dumps(data, ensure_ascii=False).encode("utf-8")
 
 
-def _resolve_selected(path_value: str, pdfs: list[Path]) -> Path | None:
-    if path_value:
-        try:
-            return _resolve_pdf(path_value)
-        except PdfEditorError:
-            return None
-    return pdfs[0] if pdfs else None
+def _error_json(msg: str, status: int = 400) -> tuple[bytes, int]:
+    return _json_response({"error": msg}), status
 
+
+# ---------------------------------------------------------------------------
+# Request handlers
+# ---------------------------------------------------------------------------
 
 class PdfEditorHandler(BaseHTTPRequestHandler):
+
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
-        fields = parse_qs(parsed.query)
-        if parsed.path == "/preview":
-            self._send_preview(fields)
-            return
+        path = parsed.path
+        qs = parse_qs(parsed.query)
 
-        path = fields.get("custom_path", fields.get("path", [""]))[0]
-        page = int(fields.get("page", ["0"])[0] or "0")
-        zoom = float(fields.get("zoom", ["1.2"])[0] or "1.2")
-        self._send_html(_page_html(path, page=page, zoom=zoom))
+        if path == "/" or path == "":
+            self._serve_static("index.html", "text/html; charset=utf-8")
+        elif path.startswith("/static/"):
+            rel = path[len("/static/"):]
+            self._serve_static(rel)
+        elif path == "/preview":
+            self._handle_preview(qs)
+        elif path == "/api/blocks":
+            self._handle_blocks(qs)
+        elif path == "/api/history":
+            self._handle_history(qs)
+        elif path == "/api/info":
+            self._handle_info(qs)
+        elif path == "/serve":
+            self._handle_serve(qs)
+        elif path == "/pdf.js" or path == "/pdf.worker.js":
+            # Redirect to CDN — handled client-side
+            self.send_error(404)
+        else:
+            self.send_error(404)
 
     def do_POST(self) -> None:
-        if self.path != "/action":
-            self.send_error(404)
-            return
+        parsed = urlparse(self.path)
+        path = parsed.path
 
         length = int(self.headers.get("Content-Length", "0"))
-        fields = parse_qs(self.rfile.read(length).decode("utf-8"))
-        pdf_path = _form_value(fields, "pdf_path")
-        try:
-            title, message = _handle_action(fields)
-        except Exception as exc:
-            title, message = "Ошибка", str(exc)
-        self._send_html(_page_html(pdf_path, title, message))
+        body = self.rfile.read(length)
 
-    def _send_preview(self, fields: dict[str, list[str]]) -> None:
+        if path == "/api/replace":
+            self._handle_replace(body)
+        elif path == "/api/undo":
+            self._handle_undo(body)
+        elif path == "/action":
+            # Legacy compatibility
+            self._handle_legacy_action(parse_qs(body.decode("utf-8")))
+        else:
+            self.send_error(404)
+
+    # --- static files ---
+
+    def _serve_static(self, rel: str, content_type: str | None = None) -> None:
+        file_path = STATIC / rel
+        if not file_path.is_file():
+            self.send_error(404)
+            return
+        if content_type is None:
+            ext = file_path.suffix.lower()
+            content_type = {
+                ".html": "text/html; charset=utf-8",
+                ".js": "application/javascript; charset=utf-8",
+                ".css": "text/css; charset=utf-8",
+                ".png": "image/png",
+                ".ico": "image/x-icon",
+            }.get(ext, "application/octet-stream")
+        data = file_path.read_bytes()
+        self._send(200, content_type, data)
+
+    # --- preview (PNG, legacy + viewer fallback) ---
+
+    def _handle_preview(self, qs: dict) -> None:
         try:
-            image, content_type = _render_page(
-                fields.get("path", [""])[0],
-                fields.get("page", ["0"])[0],
-                fields.get("zoom", ["1.2"])[0],
-            )
-            self.send_response(200)
-            self.send_header("Content-Type", content_type)
-            self.send_header("Content-Length", str(len(image)))
-            self.end_headers()
-            self.wfile.write(image)
+            import fitz
+            path_str = qs.get("path", [""])[0]
+            page_index = max(int(qs.get("page", ["0"])[0] or "0"), 0)
+            zoom = min(max(float(qs.get("zoom", ["1.5"])[0] or "1.5"), 0.5), 4.0)
+            original = _resolve_pdf(path_str)
+            src = _current_pdf(original)
+            doc = fitz.open(stream=src.read_bytes(), filetype="pdf")
+            try:
+                if doc.needs_pass:
+                    raise PdfEditorError("Файл защищён паролем.")
+                page_index = min(page_index, len(doc) - 1)
+                page = doc[page_index]
+                pixmap = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
+                data = pixmap.tobytes("png")
+            finally:
+                doc.close()
+            self._send(200, "image/png", data)
         except Exception as exc:
             self.send_error(500, str(exc))
 
-    def _send_html(self, payload: bytes) -> None:
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(payload)))
-        self.end_headers()
-        self.wfile.write(payload)
+    # --- /serve: serve raw PDF bytes ---
 
-    def log_message(self, format: str, *args) -> None:
+    def _handle_serve(self, qs: dict) -> None:
+        try:
+            path_str = qs.get("path", [""])[0]
+            original = _resolve_pdf(path_str)
+            src = _current_pdf(original)
+            data = src.read_bytes()
+            self._send(200, "application/pdf", data)
+        except PdfEditorError as exc:
+            self.send_error(404, str(exc))
+        except Exception as exc:
+            self.send_error(500, str(exc))
+
+    # --- /api/blocks ---
+
+    def _handle_blocks(self, qs: dict) -> None:
+        try:
+            path_str = qs.get("path", [""])[0]
+            page_num = int(qs.get("page", ["1"])[0] or "1")
+            original = _resolve_pdf(path_str)
+            src = _current_pdf(original)
+            blocks = get_page_blocks(src, page_num)
+            payload = [
+                {
+                    "index": b.index,
+                    "page": b.page,
+                    "bbox": list(b.bbox),
+                    "text": b.text,
+                }
+                for b in blocks
+            ]
+            self._send_json(200, payload)
+        except PdfEditorError as exc:
+            self._send_json(400, {"error": str(exc)})
+        except Exception as exc:
+            self._send_json(500, {"error": str(exc)})
+
+    # --- /api/info ---
+
+    def _handle_info(self, qs: dict) -> None:
+        try:
+            path_str = qs.get("path", [""])[0]
+            original = _resolve_pdf(path_str)
+            src = _current_pdf(original)
+            info = get_info(src)
+            self._send_json(200, {
+                "path": str(info.path),
+                "page_count": info.page_count,
+                "size_kb": info.size_kb,
+                "encrypted": info.encrypted,
+                "has_text_layer": info.has_text_layer,
+            })
+        except PdfEditorError as exc:
+            self._send_json(400, {"error": str(exc)})
+        except Exception as exc:
+            self._send_json(500, {"error": str(exc)})
+
+    # --- /api/history ---
+
+    def _handle_history(self, qs: dict) -> None:
+        path_str = qs.get("path", [""])[0]
+        try:
+            original = _resolve_pdf(path_str)
+        except PdfEditorError as exc:
+            self._send_json(400, {"error": str(exc)})
+            return
+        with _sessions_lock:
+            ops = list(_sessions.get(str(original), []))
+        self._send_json(200, {"ops": ops})
+
+    # --- /api/replace (POST) ---
+
+    def _handle_replace(self, body: bytes) -> None:
+        try:
+            data = json.loads(body.decode("utf-8"))
+        except Exception:
+            self._send_json(400, {"error": "Некорректный JSON."})
+            return
+
+        try:
+            path_str = data.get("path", "")
+            page_num = int(data["page"])
+            bbox = tuple(data["bbox"])
+            old_text = data["old"]
+            new_text = data["new"]
+            original = _resolve_pdf(path_str)
+        except (KeyError, TypeError, ValueError) as exc:
+            self._send_json(400, {"error": f"Неверные параметры: {exc}"})
+            return
+        except PdfEditorError as exc:
+            self._send_json(400, {"error": str(exc)})
+            return
+
+        try:
+            src = _current_pdf(original)
+            ep = _edited_path(original)
+            changed = replace_block(src, str(ep), page_num, bbox, old_text, new_text)
+            if changed:
+                op = {"page": page_num, "bbox": list(bbox), "old": old_text, "new": new_text}
+                with _sessions_lock:
+                    _sessions.setdefault(str(original), []).append(op)
+            self._send_json(200, {"changed": changed, "edited_path": str(ep) if changed else None})
+        except PdfEditorError as exc:
+            self._send_json(400, {"error": str(exc)})
+        except Exception as exc:
+            self._send_json(500, {"error": str(exc)})
+
+    # --- /api/undo (POST) ---
+
+    def _handle_undo(self, body: bytes) -> None:
+        try:
+            data = json.loads(body.decode("utf-8"))
+            path_str = data.get("path", "")
+            original = _resolve_pdf(path_str)
+        except PdfEditorError as exc:
+            self._send_json(400, {"error": str(exc)})
+            return
+        except Exception:
+            self._send_json(400, {"error": "Некорректный запрос."})
+            return
+
+        with _sessions_lock:
+            ops = _sessions.get(str(original), [])
+            if not ops:
+                self._send_json(200, {"undone": False, "ops_remaining": 0})
+                return
+            ops.pop()
+            _sessions[str(original)] = ops
+            ops_copy = list(ops)
+
+        try:
+            _rebuild_edited(original, ops_copy)
+            self._send_json(200, {"undone": True, "ops_remaining": len(ops_copy)})
+        except Exception as exc:
+            self._send_json(500, {"error": str(exc)})
+
+    # --- legacy /action (POST form) ---
+
+    def _handle_legacy_action(self, fields: dict) -> None:
+        from pdf_core import add_watermark, extract_text, replace_text, write_edit_text
+
+        def fv(key: str, default: str = "") -> str:
+            return fields.get(key, [default])[0].strip()
+
+        pdf_path = fv("pdf_path")
+        action = fv("action")
+        message_title = "Готово"
+        message = ""
+
+        try:
+            input_path = _resolve_pdf(pdf_path)
+            if action == "info":
+                info = get_info(input_path)
+                message_title = "Информация"
+                message = (
+                    f"Файл: {info.path}\n"
+                    f"Размер: {info.size_kb:.1f} KB\n"
+                    f"Страниц: {info.page_count}\n"
+                    f"Текстовый слой: {'есть' if info.has_text_layer else 'нет'}"
+                )
+            elif action == "replace":
+                output = fv("output") or str(input_path.with_name(f"{input_path.stem}_edited.pdf"))
+                pages = fv("pages") or None
+                max_matches = int(fv("max_matches", "0") or "0")
+                result = replace_text(input_path, output, fv("old_text"), fv("new_text"), pages, max_matches)
+                if result.matches == 0:
+                    message_title = "Замена текста"
+                    message = "Текст не найден."
+                else:
+                    message_title = "Замена текста"
+                    message = f"Заменено: {result.matches}. Файл: {result.output}"
+            elif action == "text":
+                output = fv("txt_output") or str(input_path.with_suffix(".txt"))
+                chars = extract_text(input_path, output)
+                message_title = "Извлечение текста"
+                message = f"Сохранено: {output}\nСимволов: {chars}"
+            elif action == "edit_open":
+                output = fv("txt_output") or str(input_path.with_name(f"{input_path.stem}_editable.txt"))
+                pages = write_edit_text(input_path, output)
+                message_title = "TXT для правки"
+                message = f"Создано: {output}\nСтраниц: {pages}"
+            elif action == "watermark":
+                output = fv("output") or str(input_path.with_name(f"{input_path.stem}_watermark.pdf"))
+                pages = add_watermark(input_path, output, fv("watermark_text", "DRAFT"))
+                message_title = "Водяной знак"
+                message = f"Сохранено: {output}\nСтраниц: {pages}"
+            else:
+                message_title = "Ошибка"
+                message = "Неизвестное действие."
+        except Exception as exc:
+            message_title = "Ошибка"
+            message = str(exc)
+
+        # Redirect back to main editor with a message param
+        import urllib.parse
+        redirect = f"/?msg={urllib.parse.quote(message_title + ': ' + message)}"
+        self.send_response(302)
+        self.send_header("Location", redirect)
+        self.end_headers()
+
+    # --- send helpers ---
+
+    def _send(self, status: int, content_type: str, data: bytes) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _send_json(self, status: int, data) -> None:
+        payload = _json_response(data)
+        self._send(status, "application/json; charset=utf-8", payload)
+
+    def log_message(self, format: str, *args) -> None:  # noqa: A002
         return
 
 
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
 def main(host: str = "127.0.0.1", port: int = 8765, open_browser: bool = True) -> None:
+    STATIC.mkdir(exist_ok=True)
     server = ThreadingHTTPServer((host, port), PdfEditorHandler)
     url = f"http://{host}:{port}"
-    print(f"PDF Editor interface: {url}")
+    print(f"PDF Editor: {url}")
     if open_browser:
         threading.Timer(0.5, lambda: webbrowser.open(url)).start()
     try:

@@ -19,6 +19,14 @@ class PdfEditorError(RuntimeError):
 
 
 @dataclass(frozen=True)
+class BlockInfo:
+    index: int
+    page: int
+    bbox: tuple[float, float, float, float]
+    text: str
+
+
+@dataclass(frozen=True)
 class PdfInfo:
     path: Path
     size_kb: float
@@ -118,7 +126,8 @@ def _open_fitz(path: str | os.PathLike[str], password: str | None = None):
     import fitz
 
     file_path = _require_file(path)
-    doc = fitz.open(str(file_path))
+    # Read into memory first to avoid Cyrillic path issues on Windows
+    doc = fitz.open(stream=file_path.read_bytes(), filetype="pdf")
     if doc.needs_pass and not doc.authenticate(password or ""):
         doc.close()
         raise PdfEditorError("PDF защищён паролем. Передайте пароль или снимите защиту.")
@@ -1025,5 +1034,99 @@ def apply_edit_text(
             replaced, deleted, not_placed = _apply_legacy_page_edits(doc, edited_pages)
         output_path = _save_fitz(doc, output)
         return EditApplyResult(replaced=replaced, deleted=deleted, not_placed=not_placed, output=output_path)
+    finally:
+        doc.close()
+
+
+# ── Block-level API (used by the web editor) ──────────────────────────────────
+
+
+def get_page_blocks(path: str | os.PathLike[str], page_num: int) -> list[BlockInfo]:
+    """Return all text blocks on a page (page_num is 1-indexed)."""
+    import fitz
+
+    doc = _open_fitz(path)
+    try:
+        total = len(doc)
+        if page_num < 1 or page_num > total:
+            raise PdfEditorError(f"Страница {page_num} вне диапазона (всего: {total})")
+        page = doc[page_num - 1]
+        text_dict = page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE)
+        blocks: list[BlockInfo] = []
+        for idx, block in enumerate(text_dict.get("blocks", [])):
+            if block.get("type") != 0:
+                continue
+            text = _block_text(block)
+            if not text.strip():
+                continue
+            x0, y0, x1, y1 = block["bbox"]
+            blocks.append(BlockInfo(index=idx, page=page_num, bbox=(x0, y0, x1, y1), text=text))
+        return blocks
+    finally:
+        doc.close()
+
+
+def replace_block(
+    input_path: str | os.PathLike[str],
+    output: str | os.PathLike[str],
+    page_num: int,
+    bbox: tuple[float, float, float, float],
+    old_text: str,
+    new_text: str,
+) -> bool:
+    """Replace text in the block at bbox on page_num (1-indexed).
+
+    Tries line-by-line replacement first; falls back to full-block redact+insert.
+    Returns True when changes were written to output.
+    """
+    import fitz
+
+    if old_text == new_text:
+        return False
+
+    doc = _open_fitz(input_path)
+    try:
+        page = doc[page_num - 1]
+        clip = fitz.Rect(bbox)
+
+        # Find the raw block (rawdict) whose bbox overlaps most with clip
+        raw_blocks = [
+            b
+            for b in page.get_text("rawdict", flags=fitz.TEXT_PRESERVE_WHITESPACE).get("blocks", [])
+            if b.get("type") == 0 and _block_text(b).strip()
+        ]
+        if not raw_blocks:
+            return False
+
+        target_raw = max(raw_blocks, key=lambda b: (fitz.Rect(b["bbox"]) & clip).get_area())
+        if (fitz.Rect(target_raw["bbox"]) & clip).get_area() <= 0:
+            return False
+
+        handled, count = _redact_same_line_count_edits(page, target_raw, new_text)
+
+        if not handled:
+            # Line count changed — replace the whole block area
+            dict_blocks = [
+                b
+                for b in page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE).get("blocks", [])
+                if b.get("type") == 0
+            ]
+            fontname, fontsize, color = "helv", 9.0, (0.0, 0.0, 0.0)
+            for b in dict_blocks:
+                if (fitz.Rect(b["bbox"]) & clip).get_area() > 0:
+                    fontname, fontsize, color = _block_style(b)
+                    break
+
+            rect = clip & page.rect
+            if not rect.is_empty:
+                page.add_redact_annot(_expanded_rect(rect, page.rect), fill=None)
+                page.apply_redactions()
+                _insert_textbox_fit(page, rect, new_text, fontname, fontsize, color)
+                count = 1
+
+        if count > 0:
+            _save_fitz(doc, output)
+            return True
+        return False
     finally:
         doc.close()

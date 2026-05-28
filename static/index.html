@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PDF Editor</title>
+  <link rel="stylesheet" href="/static/editor.css">
+</head>
+<body>
+  <header id="toolbar">
+    <span class="brand">PDF Editor</span>
+    <div class="file-row">
+      <input id="pdfPathInput" type="text" placeholder="Полный путь к PDF…" autocomplete="off" spellcheck="false">
+      <label class="browse-btn" title="Выбрать файл">
+        📁
+        <input id="filePicker" type="file" accept=".pdf" style="display:none">
+      </label>
+      <button id="openBtn">Открыть</button>
+    </div>
+    <div class="page-nav">
+      <button id="prevPage" title="Назад">‹</button>
+      <span id="pageLabel">—</span>
+      <button id="nextPage" title="Вперёд">›</button>
+      <button id="zoomOut" title="Уменьшить">−</button>
+      <button id="zoomIn" title="Увеличить">+</button>
+    </div>
+    <button id="undoBtn" class="action-btn" disabled>↩ Отменить</button>
+    <span id="statusMsg"></span>
+  </header>
+
+  <main id="layout">
+    <div id="viewerWrap">
+      <p id="placeholder">Выберите PDF-файл и нажмите «Открыть».</p>
+      <div id="viewerContainer" style="display:none">
+        <canvas id="pdfCanvas"></canvas>
+        <div id="blockOverlay"></div>
+      </div>
+    </div>
+
+    <aside id="editPanel">
+      <div id="editHint">Кликните на текстовый блок, чтобы редактировать.</div>
+      <div id="editForm" style="display:none">
+        <div class="field-label">Текущий текст:</div>
+        <textarea id="editOld" rows="4" readonly></textarea>
+        <div class="field-label">Новый текст:</div>
+        <textarea id="editNew" rows="4" spellcheck="false"></textarea>
+        <div class="btn-row">
+          <button id="applyBtn" class="primary">Применить</button>
+          <button id="cancelBtn">Отмена</button>
+        </div>
+      </div>
+
+      <div id="historySection" style="display:none">
+        <div class="section-title">История правок</div>
+        <ul id="historyList"></ul>
+      </div>
+    </aside>
+  </main>
+
+  <script src="/static/pdf.min.js"></script>
+  <script src="/static/editor.js"></script>
+</body>
+</html>
