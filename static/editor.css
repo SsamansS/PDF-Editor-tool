@@ -114,7 +114,8 @@ button:disabled { opacity: 0.4; cursor: default; }
   overflow: auto;
   background: #888;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   padding: 20px;
   position: relative;
 }
@@ -126,18 +127,24 @@ button:disabled { opacity: 0.4; cursor: default; }
   text-align: center;
 }
 
-#viewerContainer {
+#pagesContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.page-wrap {
   position: relative;
-  display: inline-block;
   line-height: 0;
 }
 
-#pdfCanvas {
+.page-wrap canvas {
   display: block;
   box-shadow: 0 2px 16px rgba(0,0,0,.4);
 }
 
-#blockOverlay {
+.page-overlay {
   position: absolute;
   inset: 0;
   pointer-events: none;

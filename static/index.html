@@ -25,16 +25,14 @@
       <button id="zoomIn" title="Увеличить">+</button>
     </div>
     <button id="undoBtn" class="action-btn" disabled>↩ Отменить</button>
+    <button id="saveBtn" class="action-btn" disabled>💾 Сохранить</button>
     <span id="statusMsg"></span>
   </header>
 
   <main id="layout">
     <div id="viewerWrap">
       <p id="placeholder">Выберите PDF-файл и нажмите «Открыть».</p>
-      <div id="viewerContainer" style="display:none">
-        <canvas id="pdfCanvas"></canvas>
-        <div id="blockOverlay"></div>
-      </div>
+      <div id="pagesContainer" style="display:none"></div>
     </div>
 
     <aside id="editPanel">

@@ -119,6 +119,8 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
             self._handle_info(qs)
         elif path == "/serve":
             self._handle_serve(qs)
+        elif path == "/download":
+            self._handle_download(qs)
         elif path == "/pdf.js" or path == "/pdf.worker.js":
             # Redirect to CDN — handled client-side
             self.send_error(404)
@@ -194,6 +196,31 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
             src = _current_pdf(original)
             data = src.read_bytes()
             self._send(200, "application/pdf", data)
+        except PdfEditorError as exc:
+            self.send_error(404, str(exc))
+        except Exception as exc:
+            self.send_error(500, str(exc))
+
+    # --- /download: serve edited PDF as a browser download ---
+
+    def _handle_download(self, qs: dict) -> None:
+        try:
+            path_str = qs.get("path", [""])[0]
+            original = _resolve_pdf(path_str)
+            src = _current_pdf(original)
+            data = src.read_bytes()
+            filename = _edited_path(original).name
+            ascii_name = filename.encode("ascii", "replace").decode("ascii")
+            disposition = (
+                f'attachment; filename="{ascii_name}"; '
+                f"filename*=UTF-8''{quote(filename)}"
+            )
+            self.send_response(200)
+            self.send_header("Content-Type", "application/pdf")
+            self.send_header("Content-Disposition", disposition)
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
         except PdfEditorError as exc:
             self.send_error(404, str(exc))
         except Exception as exc:
