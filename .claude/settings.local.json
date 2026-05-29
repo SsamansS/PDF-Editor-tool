@@ -36,7 +36,9 @@
       "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('pages:', d.get\\('page_count'\\), '| error:', d.get\\('error'\\)\\)\")",
       "Bash(curl -s -o /dev/null -w \"pdf.min.js: %{http_code} %{size_download}B\\\\n\" http://127.0.0.1:8765/static/pdf.min.js)",
       "Bash(curl -s -o /dev/null -w \"pdf.worker.min.js: %{http_code} %{size_download}B\\\\n\" http://127.0.0.1:8765/static/pdf.worker.min.js)",
-      "Bash(curl -s -o /dev/null -w \"editor.js: %{http_code} %{size_download}B\\\\n\" http://127.0.0.1:8765/static/editor.js)"
+      "Bash(curl -s -o /dev/null -w \"editor.js: %{http_code} %{size_download}B\\\\n\" http://127.0.0.1:8765/static/editor.js)",
+      "Bash(python -)",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('pdf_core.py', doraise=True\\); print\\('OK'\\)\")"
     ]
   }
 }

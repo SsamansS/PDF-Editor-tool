@@ -900,7 +900,7 @@ def _redact_same_line_count_edits(page, original_block: dict, new_text: str) -> 
         replacements.append((*style, new_line))
 
     for rect, _origin, _fontname, _fontsize, _color, _line_text in replacements:
-        page.add_redact_annot(_expanded_rect(rect, page.rect, pad=0.6), fill=None)
+        page.add_redact_annot(rect, fill=None)  # no expansion — neighbouring block bboxes may overlap
 
     page.apply_redactions()
     for rect, origin, fontname, fontsize, color, line_text in replacements:
@@ -1076,7 +1076,14 @@ def replace_block(
 ) -> bool:
     """Replace text in the block at bbox on page_num (1-indexed).
 
-    Tries line-by-line replacement first; falls back to full-block redact+insert.
+    Strategy (in order):
+    1. Content-stream byte replacement — preserves exact font/glyphs, safest for
+       single-line blocks whose neighbours share a tight bbox.
+    2. Same-line-count redact+insert — when content stream fails but the edited
+       block has the same number of lines as new_text.
+    3. Full-block redact+insert fallback — erases exactly the clip rect (no padding)
+       and inserts new text; may lose original font styling.
+
     Returns True when changes were written to output.
     """
     import fitz
@@ -1084,49 +1091,67 @@ def replace_block(
     if old_text == new_text:
         return False
 
+    # Normalise: strip leading/trailing whitespace that the textarea may have added
+    old_norm = old_text.strip()
+    new_norm = new_text.strip()
+    if old_norm == new_norm:
+        return False
+
+    # For single-line blocks the user may have pressed Enter mid-text; treat the
+    # new text as a single line by collapsing any newlines to spaces.
+    old_lines = [l for l in old_norm.splitlines() if l.strip()]
+    new_lines_raw = [l for l in new_norm.splitlines() if l.strip()]
+
     doc = _open_fitz(input_path)
     try:
         page = doc[page_num - 1]
         clip = fitz.Rect(bbox)
 
-        # Find the raw block (rawdict) whose bbox overlaps most with clip
+        # --- Strategy 1: content-stream replacement ---
+        # Works when old block is effectively one line or all lines can be found
+        # as a sequence in the stream.  Safest: doesn't touch neighbouring text.
+        old_single = " ".join(old_lines)
+        new_single = " ".join(new_lines_raw)
+        if old_single != new_single:
+            stream_count = _content_stream_replace(doc, page, old_single, new_single, limit=1)
+            if stream_count > 0:
+                _save_fitz(doc, output)
+                return True
+
+        # --- Strategy 2: same line-count redact+insert per line ---
         raw_blocks = [
             b
             for b in page.get_text("rawdict", flags=fitz.TEXT_PRESERVE_WHITESPACE).get("blocks", [])
             if b.get("type") == 0 and _block_text(b).strip()
         ]
-        if not raw_blocks:
-            return False
+        if raw_blocks:
+            target_raw = max(raw_blocks, key=lambda b: (fitz.Rect(b["bbox"]) & clip).get_area())
+            if (fitz.Rect(target_raw["bbox"]) & clip).get_area() > 0:
+                handled, count = _redact_same_line_count_edits(page, target_raw, new_norm)
+                if handled and count > 0:
+                    _save_fitz(doc, output)
+                    return True
 
-        target_raw = max(raw_blocks, key=lambda b: (fitz.Rect(b["bbox"]) & clip).get_area())
-        if (fitz.Rect(target_raw["bbox"]) & clip).get_area() <= 0:
-            return False
+        # --- Strategy 3: full-block redact+insert (exact clip rect, no expansion) ---
+        dict_blocks = [
+            b
+            for b in page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE).get("blocks", [])
+            if b.get("type") == 0
+        ]
+        fontname, fontsize, color = "helv", 9.0, (0.0, 0.0, 0.0)
+        for b in dict_blocks:
+            if (fitz.Rect(b["bbox"]) & clip).get_area() > 0:
+                fontname, fontsize, color = _block_style(b)
+                break
 
-        handled, count = _redact_same_line_count_edits(page, target_raw, new_text)
-
-        if not handled:
-            # Line count changed — replace the whole block area
-            dict_blocks = [
-                b
-                for b in page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE).get("blocks", [])
-                if b.get("type") == 0
-            ]
-            fontname, fontsize, color = "helv", 9.0, (0.0, 0.0, 0.0)
-            for b in dict_blocks:
-                if (fitz.Rect(b["bbox"]) & clip).get_area() > 0:
-                    fontname, fontsize, color = _block_style(b)
-                    break
-
-            rect = clip & page.rect
-            if not rect.is_empty:
-                page.add_redact_annot(_expanded_rect(rect, page.rect), fill=None)
-                page.apply_redactions()
-                _insert_textbox_fit(page, rect, new_text, fontname, fontsize, color)
-                count = 1
-
-        if count > 0:
+        rect = clip & page.rect
+        if not rect.is_empty:
+            page.add_redact_annot(rect, fill=None)  # exact clip — no expansion to avoid erasing neighbours
+            page.apply_redactions()
+            _insert_textbox_fit(page, rect, new_norm, fontname, fontsize, color)
             _save_fitz(doc, output)
             return True
+
         return False
     finally:
         doc.close()
