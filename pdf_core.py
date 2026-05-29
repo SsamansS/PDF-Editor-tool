@@ -1118,6 +1118,33 @@ def replace_block(
                 _save_fitz(doc, output)
                 return True
 
+        # --- Strategy 1b: minimal fragment replacement via difflib ---
+        # When the block spans multiple PDF text objects (so the joined form isn't
+        # found as-is), find only the changed character range and replace that.
+        # This is the safest option for edits like changing a single number inside
+        # a multi-line block — it never touches the surrounding content.
+        import difflib as _difflib
+
+        old_flat = "\n".join(old_lines)
+        new_flat = "\n".join(new_lines_raw)
+        if old_flat != new_flat:
+            matcher = _difflib.SequenceMatcher(None, old_flat, new_flat, autojunk=False)
+            for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+                if tag not in ("replace", "delete", "insert"):
+                    continue
+                old_frag = old_flat[i1:i2]
+                new_frag = new_flat[j1:j2]
+                # Only attempt single-line fragments — multi-line ones likely
+                # span separate PDF text objects and won't match in the stream.
+                if "\n" in old_frag or "\n" in new_frag:
+                    continue
+                if not old_frag:
+                    continue
+                frag_count = _content_stream_replace(doc, page, old_frag, new_frag, limit=1)
+                if frag_count > 0:
+                    _save_fitz(doc, output)
+                    return True
+
         # --- Strategy 2: same line-count redact+insert per line ---
         raw_blocks = [
             b
