@@ -6,6 +6,8 @@ The client never sends filesystem paths; it works with an opaque ``doc_id`` toke
 
 from __future__ import annotations
 
+import base64
+import hmac
 import json
 import os
 import re
@@ -35,6 +37,26 @@ UPLOAD_ROOT = WORKSPACE / "_uploads"
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024      # 50 MB hard cap for an uploaded PDF
 DOC_TTL_SECONDS = 24 * 60 * 60           # purge uploaded docs older than 24h
 _DOC_ID_RE = re.compile(r"^[0-9a-f]{32}$")
+
+# Optional .env support (python-dotenv); env vars still work without it.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(WORKSPACE / ".env")
+except Exception:
+    pass
+
+
+def _auth_credentials() -> tuple[str, str] | None:
+    """Return (user, password) if HTTP auth is configured via env, else None.
+
+    Auth is OFF when credentials are absent (local dev). Set PDF_EDITOR_USER and
+    PDF_EDITOR_PASSWORD (e.g. in .env) to require Basic Auth on every request.
+    """
+    user = os.environ.get("PDF_EDITOR_USER", "").strip()
+    password = os.environ.get("PDF_EDITOR_PASSWORD", "")
+    if user and password:
+        return user, password
+    return None
 
 # session state: original_path (str) -> list of applied ops
 # each op: {"page": int, "bbox": [x0,y0,x1,y1], "old": str, "new": str}
@@ -196,7 +218,37 @@ def _error_json(msg: str, status: int = 400) -> tuple[bytes, int]:
 
 class PdfEditorHandler(BaseHTTPRequestHandler):
 
+    # --- authentication (HTTP Basic, optional) ---
+
+    def _authorized(self) -> bool:
+        creds = _auth_credentials()
+        if creds is None:
+            return True  # auth disabled (no credentials configured)
+        header = self.headers.get("Authorization", "")
+        if not header.startswith("Basic "):
+            return False
+        try:
+            decoded = base64.b64decode(header[len("Basic "):]).decode("utf-8")
+        except Exception:
+            return False
+        user, _, password = decoded.partition(":")
+        exp_user, exp_pw = creds
+        # constant-time comparison to avoid timing leaks
+        return (hmac.compare_digest(user, exp_user)
+                and hmac.compare_digest(password, exp_pw))
+
+    def _require_auth(self) -> bool:
+        if self._authorized():
+            return True
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", 'Basic realm="PDF Editor"')
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+        return False
+
     def do_GET(self) -> None:
+        if not self._require_auth():
+            return
         parsed = urlparse(self.path)
         path = parsed.path
         qs = parse_qs(parsed.query)
@@ -222,6 +274,8 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
             self.send_error(404)
 
     def do_POST(self) -> None:
+        if not self._require_auth():
+            return
         parsed = urlparse(self.path)
         path = parsed.path
 

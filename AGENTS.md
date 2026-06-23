@@ -63,6 +63,7 @@ ReplaceResult(matches, overflow, output) # результат замены
 ## Что уже реализовано
 
 - Загрузка PDF из браузера (`/api/upload`) в песочницу `_uploads/<doc_id>/`; скачивание результата (`/download`)
+- HTTP Basic Auth (опц.): задать `PDF_EDITOR_USER`/`PDF_EDITOR_PASSWORD` в `.env` → защита всех запросов; без них авторизация выключена
 - Просмотр PDF через PDF.js
 - Hover-подсветка текстовых блоков (overlay поверх canvas)
 - Клик → textarea с текстом блока в правой панели
