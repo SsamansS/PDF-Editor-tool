@@ -93,6 +93,11 @@ python pdf_editor.py gui
 # откроется http://localhost:8765
 ```
 
+Конфиг через env (или `.env`, см. `.env.example`): `PDF_EDITOR_HOST`, `PDF_EDITOR_PORT`,
+`PDF_EDITOR_USER`/`PDF_EDITOR_PASSWORD` (включают Basic Auth).
+Приоритет host/port: CLI-флаг → env → дефолт `127.0.0.1:8765`. Для сервера: `--no-browser`,
+bind оставлять `127.0.0.1` (наружу — через nginx).
+
 ## Чего не делать
 
 - Не трогать `static/pdf.min.js` и `static/pdf.worker.min.js` — это вендорные файлы PDF.js

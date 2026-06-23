@@ -12,6 +12,7 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -128,9 +129,13 @@ def run_edit_apply(args: argparse.Namespace) -> None:
 
 
 def run_gui(args: argparse.Namespace) -> None:
+    # Importing the web module also loads .env (python-dotenv), so env vars below are available.
     from pdf_editor_web import main as web_main
 
-    web_main(args.host, args.port, not args.no_browser)
+    # Priority: explicit CLI flag > env var > safe default (localhost).
+    host = args.host or os.environ.get("PDF_EDITOR_HOST") or "127.0.0.1"
+    port = args.port or int(os.environ.get("PDF_EDITOR_PORT") or 8765)
+    web_main(host, port, not args.no_browser)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -138,14 +143,14 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command")
 
     command = sub.add_parser("gui", help="открыть графический интерфейс")
-    command.add_argument("--host", default="127.0.0.1")
-    command.add_argument("--port", type=int, default=8765)
+    command.add_argument("--host", default=None, help="по умолчанию env PDF_EDITOR_HOST или 127.0.0.1")
+    command.add_argument("--port", type=int, default=None, help="по умолчанию env PDF_EDITOR_PORT или 8765")
     command.add_argument("--no-browser", action="store_true", help="не открывать браузер автоматически")
     command.set_defaults(func=run_gui)
 
     command = sub.add_parser("web", help="открыть web-интерфейс")
-    command.add_argument("--host", default="127.0.0.1")
-    command.add_argument("--port", type=int, default=8765)
+    command.add_argument("--host", default=None, help="по умолчанию env PDF_EDITOR_HOST или 127.0.0.1")
+    command.add_argument("--port", type=int, default=None, help="по умолчанию env PDF_EDITOR_PORT или 8765")
     command.add_argument("--no-browser", action="store_true", help="не открывать браузер автоматически")
     command.set_defaults(func=run_gui)
 
