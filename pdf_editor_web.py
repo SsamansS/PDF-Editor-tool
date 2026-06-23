@@ -19,7 +19,7 @@ import uuid
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, quote, unquote, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 
 from pdf_core import (
     BlockInfo,
@@ -151,19 +151,8 @@ def _parse_multipart(body: bytes, content_type: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Legacy helpers (kept for the local /action form; not used by the web editor)
+# Edited-file helpers (operate inside the per-doc sandbox)
 # ---------------------------------------------------------------------------
-
-def _resolve_pdf(value: str) -> Path:
-    if not value:
-        raise PdfEditorError("Укажите PDF-файл.")
-    path = Path(unquote(value)).expanduser()
-    if not path.is_absolute():
-        path = WORKSPACE / path
-    if not path.is_file():
-        raise PdfEditorError(f"PDF не найден: {path}")
-    return path
-
 
 def _edited_path(original: Path) -> Path:
     return original.with_name(f"{original.stem}_edited.pdf")
@@ -291,9 +280,6 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
             self._handle_replace(body)
         elif path == "/api/undo":
             self._handle_undo(body)
-        elif path == "/action":
-            # Legacy local-only form compatibility
-            self._handle_legacy_action(parse_qs(body.decode("utf-8")))
         else:
             self.send_error(404)
 
@@ -387,9 +373,9 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
                 doc.close()
             self._send(200, "image/png", data)
         except PdfEditorError as exc:
-            self.send_error(404, str(exc))
+            self.send_error(404, "Not Found", str(exc))
         except Exception as exc:
-            self.send_error(500, str(exc))
+            self.send_error(500, "Server Error", str(exc))
 
     # --- /serve: serve raw PDF bytes for PDF.js ---
 
@@ -401,9 +387,9 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
             data = src.read_bytes()
             self._send(200, "application/pdf", data)
         except PdfEditorError as exc:
-            self.send_error(404, str(exc))
+            self.send_error(404, "Not Found", str(exc))
         except Exception as exc:
-            self.send_error(500, str(exc))
+            self.send_error(500, "Server Error", str(exc))
 
     # --- /download: serve edited PDF as a browser download ---
 
@@ -427,9 +413,9 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data)
         except PdfEditorError as exc:
-            self.send_error(404, str(exc))
+            self.send_error(404, "Not Found", str(exc))
         except Exception as exc:
-            self.send_error(500, str(exc))
+            self.send_error(500, "Server Error", str(exc))
 
     # --- /api/blocks ---
 
@@ -552,70 +538,6 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
             self._send_json(200, {"undone": True, "ops_remaining": len(ops_copy)})
         except Exception as exc:
             self._send_json(500, {"error": str(exc)})
-
-    # --- legacy /action (POST form) — local-only, path-based ---
-
-    def _handle_legacy_action(self, fields: dict) -> None:
-        from pdf_core import add_watermark, extract_text, replace_text, write_edit_text
-
-        def fv(key: str, default: str = "") -> str:
-            return fields.get(key, [default])[0].strip()
-
-        pdf_path = fv("pdf_path")
-        action = fv("action")
-        message_title = "Готово"
-        message = ""
-
-        try:
-            input_path = _resolve_pdf(pdf_path)
-            if action == "info":
-                info = get_info(input_path)
-                message_title = "Информация"
-                message = (
-                    f"Файл: {info.path}\n"
-                    f"Размер: {info.size_kb:.1f} KB\n"
-                    f"Страниц: {info.page_count}\n"
-                    f"Текстовый слой: {'есть' if info.has_text_layer else 'нет'}"
-                )
-            elif action == "replace":
-                output = fv("output") or str(input_path.with_name(f"{input_path.stem}_edited.pdf"))
-                pages = fv("pages") or None
-                max_matches = int(fv("max_matches", "0") or "0")
-                result = replace_text(input_path, output, fv("old_text"), fv("new_text"), pages, max_matches)
-                if result.matches == 0:
-                    message_title = "Замена текста"
-                    message = "Текст не найден."
-                else:
-                    message_title = "Замена текста"
-                    message = f"Заменено: {result.matches}. Файл: {result.output}"
-            elif action == "text":
-                output = fv("txt_output") or str(input_path.with_suffix(".txt"))
-                chars = extract_text(input_path, output)
-                message_title = "Извлечение текста"
-                message = f"Сохранено: {output}\nСимволов: {chars}"
-            elif action == "edit_open":
-                output = fv("txt_output") or str(input_path.with_name(f"{input_path.stem}_editable.txt"))
-                pages = write_edit_text(input_path, output)
-                message_title = "TXT для правки"
-                message = f"Создано: {output}\nСтраниц: {pages}"
-            elif action == "watermark":
-                output = fv("output") or str(input_path.with_name(f"{input_path.stem}_watermark.pdf"))
-                pages = add_watermark(input_path, output, fv("watermark_text", "DRAFT"))
-                message_title = "Водяной знак"
-                message = f"Сохранено: {output}\nСтраниц: {pages}"
-            else:
-                message_title = "Ошибка"
-                message = "Неизвестное действие."
-        except Exception as exc:
-            message_title = "Ошибка"
-            message = str(exc)
-
-        # Redirect back to main editor with a message param
-        import urllib.parse
-        redirect = f"/?msg={urllib.parse.quote(message_title + ': ' + message)}"
-        self.send_response(302)
-        self.send_header("Location", redirect)
-        self.end_headers()
 
     # --- send helpers ---
 
