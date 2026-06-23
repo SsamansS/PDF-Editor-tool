@@ -76,8 +76,8 @@
 | **T3** | Авторизация (логин/пароль) | 🔴 крит. | ✅ DONE |
 | **T4** | Безопасность: убрать path traversal, изолировать рабочую папку | 🟠 высок. | ✅ DONE |
 | **T5** | Конфиг через env, bind на `127.0.0.1` | 🟠 высок. | ✅ DONE |
-| **T6** | Деплой под `pdf.runpro.in` (DNS + nginx + certbot + systemd) | 🟠 высок. | ⛔ BLOCKED (ждёт DNS) |
-| **T7** | Автозапуск как сервис (systemd) + логи | 🟡 средн. | ⛔ BLOCKED (после T6) |
+| **T6** | Деплой под `pdf.runpro.in` (DNS + nginx + certbot + systemd) | 🟠 высок. | ✅ DONE |
+| **T7** | Автозапуск как сервис (systemd) + логи | 🟡 средн. | ✅ DONE |
 
 Зависимости: **T2 → T1**, **T6 → T2, T3, T4, T5**, **T7 → T6**.
 HTTPS больше не отдельная задача — выдаётся certbot'ом внутри T6.5 (переиспользуем готовый Certbot).
@@ -138,10 +138,12 @@ HTTPS больше не отдельная задача — выдаётся cer
 **DoD:** ✅ Проверено: без env/флагов → `127.0.0.1:8765`; env `PDF_EDITOR_HOST/PORT` → применяются;
 CLI-флаг перебивает env. `.env.example` дополнен host/port.
 
-### T6 — Деплой под `pdf.runpro.in` 🟠 ⛔ BLOCKED
-*(зависит от T2, T3, T4, T5; соблюдать Guardrails. Решение 2026-06-23: «ждём DNS, потом всё сразу».)*
-**Блокер:** нужна DNS A-запись `pdf.runpro.in → 13.59.170.121` (создаёт владелец домена) +
-учётки для `.env` + момент исполнения на боевом сервере. Артефакты деплоя готовы в `deploy/`.
+### T6 — Деплой под `pdf.runpro.in` 🟠 ✅ DONE
+*(зависит от T2, T3, T4, T5; Guardrails соблюдены.)*
+Развёрнут 2026-06-23. Полный журнал — в `DEPLOY.md`. Код в `/opt/pdf-editor`, venv, `.env` с учётками,
+systemd `pdf-editor.service` на `127.0.0.1:8765`, новый nginx-блок `pdf.runpro.in`, HTTPS через certbot.
+**DoD выполнен:** `https://pdf.runpro.in` — авторизация → загрузка PDF снаружи проверена (`200`, `doc_id`);
+`runpro.in` и его `/api/` не затронуты.
 - T6.1 ☐ Создать DNS-запись **A `pdf.runpro.in` → 13.59.170.121** у DNS-провайдера (бесплатно).
 - T6.2 ☐ Развернуть код в отдельном каталоге (напр. `/opt/pdf-editor`), `venv` + `requirements.txt`.
 - T6.3 ☐ Запустить app как `pdf-editor.service` на `127.0.0.1:8765` (см. T7).
@@ -154,10 +156,10 @@ CLI-флаг перебивает env. `.env.example` дополнен host/port
 **DoD:** коллега из браузера открывает `https://pdf.runpro.in`, проходит авторизацию, загружает и
 редактирует PDF; существующий сайт/API не затронуты.
 
-### T7 — Автозапуск как сервис 🟡 ☐ TODO
+### T7 — Автозапуск как сервис 🟡 ✅ DONE
 *(зависит от T6.2)*
-`systemd`-юнит `pdf-editor.service`: автостарт, `Restart=on-failure`, логи в journald, запуск из `venv`.
-**DoD:** после `reboot` сервис поднимается сам; `systemctl status pdf-editor` → `active (running)`.
+`systemd`-юнит `pdf-editor.service`: `enable --now`, `Restart=on-failure`, логи в journald, запуск из `venv`.
+**DoD выполнен:** сервис `enabled` (поднимется после reboot), `systemctl is-active` → `active`.
 
 ---
 
@@ -178,3 +180,4 @@ CLI-флаг перебивает env. `.env.example` дополнен host/port
 | 2026-06-23 | T5 | 📦 Коммит `49937f7` (ветка `portable_v`): конфиг через env. 4 файла, +30/−11. |
 | 2026-06-23 | T6,T7 | 🛠 Подготовлены артефакты деплоя в `deploy/`: `pdf-editor.service`, `nginx-pdf.runpro.in.conf`, `README.md`. Коммит `5f7804d`. |
 | 2026-06-23 | T6,T7 | ⛔ BLOCKED по решению пользователя: «ждём DNS, потом всё сразу». На сервере ничего не трогаем до создания A-записи `pdf.runpro.in → 13.59.170.121`. |
+| 2026-06-23 | T6,T7 | ✅ DNS создан (Hostinger). Деплой выполнен: код в `/opt/pdf-editor`, venv, `.env`, systemd `pdf-editor.service` (127.0.0.1:8765), nginx-блок `pdf.runpro.in`, HTTPS certbot (до 2026-09-21). Проверено снаружи: авторизация + загрузка PDF работают, `runpro.in` цел. Журнал — `DEPLOY.md`. **Эпик E1 завершён.** |
