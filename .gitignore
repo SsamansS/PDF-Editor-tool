@@ -11,3 +11,7 @@ venv
 # Generated/temporary files
 *.pdf
 *.docx
+
+# Uploaded documents (per-session sandbox) and local env
+_uploads/
+.env

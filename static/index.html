@@ -10,12 +10,11 @@
   <header id="toolbar">
     <span class="brand">PDF Editor</span>
     <div class="file-row">
-      <input id="pdfPathInput" type="text" placeholder="Полный путь к PDF…" autocomplete="off" spellcheck="false">
-      <label class="browse-btn" title="Выбрать файл">
-        📁
-        <input id="filePicker" type="file" accept=".pdf" style="display:none">
+      <label class="browse-btn" title="Загрузить PDF">
+        📁 Загрузить PDF
+        <input id="filePicker" type="file" accept="application/pdf,.pdf" style="display:none">
       </label>
-      <button id="openBtn">Открыть</button>
+      <span id="fileName" class="file-name"></span>
     </div>
     <div class="page-nav">
       <button id="prevPage" title="Назад">‹</button>
@@ -31,7 +30,7 @@
 
   <main id="layout">
     <div id="viewerWrap">
-      <p id="placeholder">Выберите PDF-файл и нажмите «Открыть».</p>
+      <p id="placeholder">Нажмите «Загрузить PDF», чтобы открыть файл.</p>
       <div id="pagesContainer" style="display:none"></div>
     </div>
 

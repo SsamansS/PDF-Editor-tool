@@ -29,19 +29,27 @@ static/             ← фронтенд: index.html, editor.js, editor.css
 
 ## Ключевые API-эндпоинты
 
+Клиент работает с непрозрачным токеном `doc` (doc_id), а НЕ с путём к файлу.
+Файл загружается через `/api/upload` и хранится в песочнице `_uploads/<doc_id>/`.
+
 | Endpoint | Метод | Что делает |
 |----------|-------|-----------|
-| `/serve?path=...` | GET | отдаёт PDF-байты для PDF.js |
-| `/api/blocks?path=...&page=N` | GET | возвращает блоки страницы с bbox и текстом |
-| `/api/replace` | POST | заменяет блок по bbox (`page`, `bbox`, `old`, `new`, `path`) |
-| `/api/undo` | POST | откатывает последнее изменение |
-| `/api/info?path=...` | GET | мета-информация о PDF |
+| `/api/upload` | POST | multipart-загрузка PDF → сохраняет в `_uploads/<doc_id>/`, возвращает `doc_id` + мета |
+| `/serve?doc=...` | GET | отдаёт PDF-байты для PDF.js |
+| `/download?doc=...` | GET | отдаёт `_edited.pdf` как скачивание (`Content-Disposition`) |
+| `/api/blocks?doc=...&page=N` | GET | возвращает блоки страницы с bbox и текстом |
+| `/api/replace` | POST | заменяет блок по bbox (`doc`, `page`, `bbox`, `old`, `new`) |
+| `/api/undo` | POST | откатывает последнее изменение (`doc`) |
+| `/api/info?doc=...` | GET | мета-информация о PDF |
+
+> Legacy-эндпоинт `/action` (POST-форма) всё ещё принимает путь к файлу (`_resolve_pdf`) —
+> только для локального запуска; в веб-редакторе не используется.
 
 ## Механизм undo
 
-Хранится в памяти сервера (`_sessions` dict, ключ — путь к оригиналу):
-- Оригинал (`document.pdf`) никогда не перезаписывается
-- Рабочий файл — `document_edited.pdf`, пересобирается при каждом изменении
+Хранится в памяти сервера (`_sessions` dict, ключ — путь к оригиналу `_uploads/<doc_id>/original.pdf`):
+- Оригинал (`original.pdf`) никогда не перезаписывается
+- Рабочий файл — `original_edited.pdf`, пересобирается при каждом изменении
 - Undo = удалить последний элемент из `edit_history` → пересобрать `_edited.pdf` с нуля
 
 ## Модели данных (pdf_core.py)
@@ -54,6 +62,7 @@ ReplaceResult(matches, overflow, output) # результат замены
 
 ## Что уже реализовано
 
+- Загрузка PDF из браузера (`/api/upload`) в песочницу `_uploads/<doc_id>/`; скачивание результата (`/download`)
 - Просмотр PDF через PDF.js
 - Hover-подсветка текстовых блоков (overlay поверх canvas)
 - Клик → textarea с текстом блока в правой панели

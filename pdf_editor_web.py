@@ -1,11 +1,19 @@
-"""Local web interface for the PDF Editor tool — PDF.js based block editor."""
+"""Web interface for the PDF Editor tool — PDF.js based block editor.
+
+Files are uploaded from the browser and stored per-document under ``_uploads/<doc_id>/``.
+The client never sends filesystem paths; it works with an opaque ``doc_id`` token.
+"""
 
 from __future__ import annotations
 
 import json
 import os
+import re
+import shutil
 import sys
 import threading
+import time
+import uuid
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -22,6 +30,11 @@ from pdf_core import (
 
 WORKSPACE = Path(__file__).resolve().parent
 STATIC = WORKSPACE / "static"
+UPLOAD_ROOT = WORKSPACE / "_uploads"
+
+MAX_UPLOAD_BYTES = 50 * 1024 * 1024      # 50 MB hard cap for an uploaded PDF
+DOC_TTL_SECONDS = 24 * 60 * 60           # purge uploaded docs older than 24h
+_DOC_ID_RE = re.compile(r"^[0-9a-f]{32}$")
 
 # session state: original_path (str) -> list of applied ops
 # each op: {"page": int, "bbox": [x0,y0,x1,y1], "old": str, "new": str}
@@ -30,7 +43,93 @@ _sessions_lock = threading.Lock()
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Document storage helpers (doc_id -> sandboxed files)
+# ---------------------------------------------------------------------------
+
+def _doc_dir(doc_id: str) -> Path:
+    """Return the sandbox directory for a doc_id, validating the token."""
+    if not doc_id or not _DOC_ID_RE.match(doc_id):
+        raise PdfEditorError("Некорректный идентификатор документа.")
+    return UPLOAD_ROOT / doc_id
+
+
+def _resolve_doc(doc_id: str) -> Path:
+    """Return the original PDF path for a doc_id (raises if missing)."""
+    original = _doc_dir(doc_id) / "original.pdf"
+    if not original.is_file():
+        raise PdfEditorError(
+            "Документ не найден или истёк срок хранения. Загрузите PDF заново."
+        )
+    return original
+
+
+def _doc_display_name(doc_id: str) -> str:
+    """Original filename the user uploaded (for download), with a safe default."""
+    meta = _doc_dir(doc_id) / "name.txt"
+    if meta.is_file():
+        try:
+            name = meta.read_text(encoding="utf-8").strip()
+            if name:
+                return name
+        except Exception:
+            pass
+    return "document.pdf"
+
+
+def _cleanup_old_docs() -> None:
+    """Remove upload dirs older than DOC_TTL_SECONDS. Best-effort, never raises."""
+    if not UPLOAD_ROOT.is_dir():
+        return
+    cutoff = time.time() - DOC_TTL_SECONDS
+    for child in UPLOAD_ROOT.iterdir():
+        try:
+            if child.is_dir() and child.stat().st_mtime < cutoff:
+                shutil.rmtree(child, ignore_errors=True)
+        except Exception:
+            pass
+
+
+def _parse_multipart(body: bytes, content_type: str) -> dict:
+    """Minimal multipart/form-data parser.
+
+    Returns ``{field_name: {"filename": str|None, "data": bytes}}``.
+    Sufficient for our single-file upload; not a general-purpose implementation.
+    """
+    if "boundary=" not in content_type:
+        raise PdfEditorError("Неверный формат загрузки (нет boundary).")
+    boundary = content_type.split("boundary=", 1)[1].strip()
+    if boundary.startswith('"') and boundary.endswith('"'):
+        boundary = boundary[1:-1]
+    delim = b"--" + boundary.encode("latin-1")
+
+    result: dict = {}
+    for part in body.split(delim):
+        if not part or part in (b"--", b"--\r\n"):
+            continue
+        if part.startswith(b"\r\n"):
+            part = part[2:]
+        if part.endswith(b"\r\n"):
+            part = part[:-2]
+        header_blob, sep, data = part.partition(b"\r\n\r\n")
+        if not sep:
+            continue
+        name = None
+        filename = None
+        for line in header_blob.decode("latin-1", "replace").split("\r\n"):
+            if line.lower().startswith("content-disposition"):
+                for token in line.split(";"):
+                    token = token.strip()
+                    if token.startswith("name="):
+                        name = token[len("name="):].strip('"')
+                    elif token.startswith("filename="):
+                        filename = token[len("filename="):].strip('"')
+        if name is not None:
+            result[name] = {"filename": filename, "data": data}
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Legacy helpers (kept for the local /action form; not used by the web editor)
 # ---------------------------------------------------------------------------
 
 def _resolve_pdf(value: str) -> Path:
@@ -55,8 +154,6 @@ def _current_pdf(original: Path) -> Path:
 
 def _rebuild_edited(original: Path, ops: list[dict]) -> None:
     """Apply ops sequentially from original, writing to _edited.pdf."""
-    import shutil
-
     ep = _edited_path(original)
     if not ops:
         if ep.is_file():
@@ -121,9 +218,6 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
             self._handle_serve(qs)
         elif path == "/download":
             self._handle_download(qs)
-        elif path == "/pdf.js" or path == "/pdf.worker.js":
-            # Redirect to CDN — handled client-side
-            self.send_error(404)
         else:
             self.send_error(404)
 
@@ -132,14 +226,19 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
         path = parsed.path
 
         length = int(self.headers.get("Content-Length", "0"))
+        if length > MAX_UPLOAD_BYTES + 1024 * 1024:
+            self._send_json(413, {"error": "Запрос слишком большой."})
+            return
         body = self.rfile.read(length)
 
-        if path == "/api/replace":
+        if path == "/api/upload":
+            self._handle_upload(body, self.headers.get("Content-Type", ""))
+        elif path == "/api/replace":
             self._handle_replace(body)
         elif path == "/api/undo":
             self._handle_undo(body)
         elif path == "/action":
-            # Legacy compatibility
+            # Legacy local-only form compatibility
             self._handle_legacy_action(parse_qs(body.decode("utf-8")))
         else:
             self.send_error(404)
@@ -163,15 +262,64 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
         data = file_path.read_bytes()
         self._send(200, content_type, data)
 
-    # --- preview (PNG, legacy + viewer fallback) ---
+    # --- /api/upload: receive a PDF from the browser ---
+
+    def _handle_upload(self, body: bytes, content_type: str) -> None:
+        try:
+            parts = _parse_multipart(body, content_type)
+        except PdfEditorError as exc:
+            self._send_json(400, {"error": str(exc)})
+            return
+
+        file_part = parts.get("file")
+        if not file_part or not file_part.get("data"):
+            self._send_json(400, {"error": "Файл не получен."})
+            return
+
+        data = file_part["data"]
+        if len(data) > MAX_UPLOAD_BYTES:
+            self._send_json(400, {"error": "Файл слишком большой (макс. 50 МБ)."})
+            return
+        if not data.startswith(b"%PDF-"):
+            self._send_json(400, {"error": "Это не PDF-файл."})
+            return
+
+        doc_id = uuid.uuid4().hex
+        doc_dir = UPLOAD_ROOT / doc_id
+        doc_dir.mkdir(parents=True, exist_ok=True)
+        original = doc_dir / "original.pdf"
+        original.write_bytes(data)
+
+        raw_name = file_part.get("filename") or "document.pdf"
+        safe_name = Path(raw_name).name or "document.pdf"
+        (doc_dir / "name.txt").write_text(safe_name, encoding="utf-8")
+
+        try:
+            info = get_info(original)
+        except Exception as exc:
+            shutil.rmtree(doc_dir, ignore_errors=True)
+            self._send_json(400, {"error": f"Не удалось открыть PDF: {exc}"})
+            return
+
+        _cleanup_old_docs()
+        self._send_json(200, {
+            "doc_id": doc_id,
+            "name": safe_name,
+            "page_count": info.page_count,
+            "size_kb": info.size_kb,
+            "encrypted": info.encrypted,
+            "has_text_layer": info.has_text_layer,
+        })
+
+    # --- preview (PNG, viewer fallback) ---
 
     def _handle_preview(self, qs: dict) -> None:
         try:
             import fitz
-            path_str = qs.get("path", [""])[0]
+            doc_id = qs.get("doc", [""])[0]
             page_index = max(int(qs.get("page", ["0"])[0] or "0"), 0)
             zoom = min(max(float(qs.get("zoom", ["1.5"])[0] or "1.5"), 0.5), 4.0)
-            original = _resolve_pdf(path_str)
+            original = _resolve_doc(doc_id)
             src = _current_pdf(original)
             doc = fitz.open(stream=src.read_bytes(), filetype="pdf")
             try:
@@ -184,15 +332,17 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
             finally:
                 doc.close()
             self._send(200, "image/png", data)
+        except PdfEditorError as exc:
+            self.send_error(404, str(exc))
         except Exception as exc:
             self.send_error(500, str(exc))
 
-    # --- /serve: serve raw PDF bytes ---
+    # --- /serve: serve raw PDF bytes for PDF.js ---
 
     def _handle_serve(self, qs: dict) -> None:
         try:
-            path_str = qs.get("path", [""])[0]
-            original = _resolve_pdf(path_str)
+            doc_id = qs.get("doc", [""])[0]
+            original = _resolve_doc(doc_id)
             src = _current_pdf(original)
             data = src.read_bytes()
             self._send(200, "application/pdf", data)
@@ -205,11 +355,12 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
 
     def _handle_download(self, qs: dict) -> None:
         try:
-            path_str = qs.get("path", [""])[0]
-            original = _resolve_pdf(path_str)
+            doc_id = qs.get("doc", [""])[0]
+            original = _resolve_doc(doc_id)
             src = _current_pdf(original)
             data = src.read_bytes()
-            filename = _edited_path(original).name
+            display = _doc_display_name(doc_id)
+            filename = f"{Path(display).stem}_edited.pdf"
             ascii_name = filename.encode("ascii", "replace").decode("ascii")
             disposition = (
                 f'attachment; filename="{ascii_name}"; '
@@ -230,9 +381,9 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
 
     def _handle_blocks(self, qs: dict) -> None:
         try:
-            path_str = qs.get("path", [""])[0]
+            doc_id = qs.get("doc", [""])[0]
             page_num = int(qs.get("page", ["1"])[0] or "1")
-            original = _resolve_pdf(path_str)
+            original = _resolve_doc(doc_id)
             src = _current_pdf(original)
             blocks = get_page_blocks(src, page_num)
             payload = [
@@ -254,12 +405,11 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
 
     def _handle_info(self, qs: dict) -> None:
         try:
-            path_str = qs.get("path", [""])[0]
-            original = _resolve_pdf(path_str)
+            doc_id = qs.get("doc", [""])[0]
+            original = _resolve_doc(doc_id)
             src = _current_pdf(original)
             info = get_info(src)
             self._send_json(200, {
-                "path": str(info.path),
                 "page_count": info.page_count,
                 "size_kb": info.size_kb,
                 "encrypted": info.encrypted,
@@ -273,9 +423,9 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
     # --- /api/history ---
 
     def _handle_history(self, qs: dict) -> None:
-        path_str = qs.get("path", [""])[0]
+        doc_id = qs.get("doc", [""])[0]
         try:
-            original = _resolve_pdf(path_str)
+            original = _resolve_doc(doc_id)
         except PdfEditorError as exc:
             self._send_json(400, {"error": str(exc)})
             return
@@ -293,12 +443,12 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
             return
 
         try:
-            path_str = data.get("path", "")
+            doc_id = data.get("doc", "")
             page_num = int(data["page"])
             bbox = tuple(data["bbox"])
             old_text = data["old"]
             new_text = data["new"]
-            original = _resolve_pdf(path_str)
+            original = _resolve_doc(doc_id)
         except (KeyError, TypeError, ValueError) as exc:
             self._send_json(400, {"error": f"Неверные параметры: {exc}"})
             return
@@ -314,7 +464,7 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
                 op = {"page": page_num, "bbox": list(bbox), "old": old_text, "new": new_text}
                 with _sessions_lock:
                     _sessions.setdefault(str(original), []).append(op)
-            self._send_json(200, {"changed": changed, "edited_path": str(ep) if changed else None})
+            self._send_json(200, {"changed": changed})
         except PdfEditorError as exc:
             self._send_json(400, {"error": str(exc)})
         except Exception as exc:
@@ -325,8 +475,8 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
     def _handle_undo(self, body: bytes) -> None:
         try:
             data = json.loads(body.decode("utf-8"))
-            path_str = data.get("path", "")
-            original = _resolve_pdf(path_str)
+            doc_id = data.get("doc", "")
+            original = _resolve_doc(doc_id)
         except PdfEditorError as exc:
             self._send_json(400, {"error": str(exc)})
             return
@@ -349,7 +499,7 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
         except Exception as exc:
             self._send_json(500, {"error": str(exc)})
 
-    # --- legacy /action (POST form) ---
+    # --- legacy /action (POST form) — local-only, path-based ---
 
     def _handle_legacy_action(self, fields: dict) -> None:
         from pdf_core import add_watermark, extract_text, replace_text, write_edit_text
@@ -436,6 +586,8 @@ class PdfEditorHandler(BaseHTTPRequestHandler):
 
 def main(host: str = "127.0.0.1", port: int = 8765, open_browser: bool = True) -> None:
     STATIC.mkdir(exist_ok=True)
+    UPLOAD_ROOT.mkdir(exist_ok=True)
+    _cleanup_old_docs()
     server = ThreadingHTTPServer((host, port), PdfEditorHandler)
     url = f"http://{host}:{port}"
     print(f"PDF Editor: {url}")
