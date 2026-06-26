@@ -68,7 +68,7 @@ ReplaceResult(matches, overflow, output) # результат замены
 - Просмотр PDF через PDF.js
 - Hover-подсветка текстовых блоков (overlay поверх canvas)
 - Клик → textarea с текстом блока в правой панели
-- Замена блока по bbox (`replace_at_bbox` через `page.search_for(old, clip=bbox)`)
+- Замена блока по bbox (`replace_block`): по очереди — замена в content-stream (точные глифы), фрагментная замена через difflib, redact+insert. Глобальные по странице стратегии применяются только если текст на странице уникален (`page.search_for`), иначе правка идёт строго по bbox — чтобы не задеть дубликат выше (баг B1)
 - Undo с полной пересборкой PDF
 - История изменений в правой панели
 - Базовые CLI-операции: merge, split, rotate, watermark, encrypt, extract-text
