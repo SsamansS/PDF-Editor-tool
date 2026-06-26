@@ -1107,12 +1107,27 @@ def replace_block(
         page = doc[page_num - 1]
         clip = fitz.Rect(bbox)
 
+        # Content-stream strategies (1, 1b) replace the FIRST byte match on the
+        # whole page — they ignore ``bbox``. That is only safe when the text we are
+        # replacing is unambiguous on the page; otherwise the edit lands on a
+        # different (earlier) occurrence and the selected block looks unchanged.
+        def _occurs_more_than_once(needle: str) -> bool:
+            needle = needle.strip()
+            if not needle:
+                return False
+            try:
+                return len(page.search_for(needle)) > 1
+            except Exception:
+                # If search fails we can't prove uniqueness — treat as ambiguous
+                # so we fall back to the bbox-bound strategies below.
+                return True
+
         # --- Strategy 1: content-stream replacement ---
         # Works when old block is effectively one line or all lines can be found
         # as a sequence in the stream.  Safest: doesn't touch neighbouring text.
         old_single = " ".join(old_lines)
         new_single = " ".join(new_lines_raw)
-        if old_single != new_single:
+        if old_single != new_single and not _occurs_more_than_once(old_single):
             stream_count = _content_stream_replace(doc, page, old_single, new_single, limit=1)
             if stream_count > 0:
                 _save_fitz(doc, output)
@@ -1139,6 +1154,10 @@ def replace_block(
                 if "\n" in old_frag or "\n" in new_frag:
                     continue
                 if not old_frag:
+                    continue
+                # The fragment is replaced page-globally too; skip it when it is
+                # not unique, or we would edit a duplicate elsewhere on the page.
+                if _occurs_more_than_once(old_frag):
                     continue
                 frag_count = _content_stream_replace(doc, page, old_frag, new_frag, limit=1)
                 if frag_count > 0:
