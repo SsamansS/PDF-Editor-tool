@@ -5,7 +5,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/pdf.worker.min.js';
 
 // ---- State ----
 const state = {
-  originalPath: '',
+  docId: '',          // opaque server-side document token (from /api/upload)
+  fileName: '',
   pageCount: 0,
   currentPage: 1,
   zoom: 1.5,
@@ -19,7 +20,7 @@ const state = {
 const pagesContainer  = document.getElementById('pagesContainer');
 const viewerWrap      = document.getElementById('viewerWrap');
 const pageLabel       = document.getElementById('pageLabel');
-const pdfPathInput    = document.getElementById('pdfPathInput');
+const fileNameEl      = document.getElementById('fileName');
 const statusMsg       = document.getElementById('statusMsg');
 const editHint        = document.getElementById('editHint');
 const editForm        = document.getElementById('editForm');
@@ -50,32 +51,31 @@ function setStatus(msg, isError = false) {
   if (msg) statusTimer = setTimeout(() => { statusMsg.textContent = ''; }, 5000);
 }
 
-// ---- File picker ----
+// ---- File picker → upload ----
 filePicker.addEventListener('change', () => {
   const file = filePicker.files[0];
-  if (!file) return;
-  pdfPathInput.value = file.path ? file.path : file.name;
-  openPdf();
+  if (file) uploadPdf(file);
+  filePicker.value = '';   // allow re-selecting the same file
 });
 
-// ---- Open PDF ----
-document.getElementById('openBtn').addEventListener('click', openPdf);
-pdfPathInput.addEventListener('keydown', e => { if (e.key === 'Enter') openPdf(); });
-
-async function openPdf() {
-  const path = pdfPathInput.value.trim();
-  if (!path) { setStatus('Укажите путь к PDF.', true); return; }
-
-  state.originalPath = path;
-  state.currentPage = 1;
+// ---- Upload PDF to server, then open it ----
+async function uploadPdf(file) {
   setLoading(true);
   clearSelection();
+  setStatus('Загрузка файла…');
 
   try {
-    const info = await apiFetch(`/api/info?path=${encodeURIComponent(path)}`);
-    if (info.error) throw new Error(info.error);
+    const form = new FormData();
+    form.append('file', file, file.name);
+    const res = await fetch('/api/upload', { method: 'POST', body: form });
+    const info = await res.json();
+    if (!res.ok || info.error) throw new Error(info.error || `HTTP ${res.status}`);
 
+    state.docId = info.doc_id;
+    state.fileName = info.name || file.name;
     state.pageCount = info.page_count;
+    state.currentPage = 1;
+    fileNameEl.textContent = state.fileName;
 
     await reloadPdfDoc();
 
@@ -85,6 +85,7 @@ async function openPdf() {
 
     await buildAndRenderAll();
     await refreshHistory();
+    setStatus('Готово.');
   } catch (err) {
     setStatus('Ошибка: ' + err.message, true);
     console.error(err);
@@ -119,7 +120,7 @@ function scrollToPage(n) {
 
 // ---- Reload PDF.js document after open/edit/undo ----
 async function reloadPdfDoc() {
-  const url = `/serve?path=${encodeURIComponent(state.originalPath)}&_t=${Date.now()}`;
+  const url = `/serve?doc=${encodeURIComponent(state.docId)}&_t=${Date.now()}`;
   state.pdfDoc = await pdfjsLib.getDocument(url).promise;
 }
 
@@ -185,7 +186,7 @@ async function renderPageCanvas(p) {
 // ---- Load + draw blocks for one page ----
 async function loadBlocksForPage(p) {
   const data = await apiFetch(
-    `/api/blocks?path=${encodeURIComponent(state.originalPath)}&page=${p.num}`
+    `/api/blocks?doc=${encodeURIComponent(state.docId)}&page=${p.num}`
   );
   p.blocks = Array.isArray(data) ? data : [];
   drawOverlayForPage(p);
@@ -267,7 +268,7 @@ async function applyEdit() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        path: state.originalPath,
+        doc: state.docId,
         page: pageNum,
         bbox: block.bbox,
         old: oldText,
@@ -294,8 +295,8 @@ async function applyEdit() {
 
 // ---- Save (download edited PDF via browser) ----
 saveBtn.addEventListener('click', () => {
-  if (!state.originalPath) { setStatus('Сначала откройте PDF.', true); return; }
-  const url = `/download?path=${encodeURIComponent(state.originalPath)}&_t=${Date.now()}`;
+  if (!state.docId) { setStatus('Сначала загрузите PDF.', true); return; }
+  const url = `/download?doc=${encodeURIComponent(state.docId)}&_t=${Date.now()}`;
   const a = document.createElement('a');
   a.href = url;
   a.download = '';
@@ -307,13 +308,13 @@ saveBtn.addEventListener('click', () => {
 
 // ---- Undo ----
 document.getElementById('undoBtn').addEventListener('click', async () => {
-  if (!state.originalPath) return;
+  if (!state.docId) return;
   setLoading(true);
   try {
     const res = await apiFetch('/api/undo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: state.originalPath }),
+      body: JSON.stringify({ doc: state.docId }),
     });
     if (res.error) { setStatus('Ошибка: ' + res.error, true); return; }
     if (res.undone) {
@@ -335,9 +336,9 @@ document.getElementById('undoBtn').addEventListener('click', async () => {
 
 // ---- History panel ----
 async function refreshHistory() {
-  if (!state.originalPath) return;
+  if (!state.docId) return;
   const data = await apiFetch(
-    `/api/history?path=${encodeURIComponent(state.originalPath)}`
+    `/api/history?doc=${encodeURIComponent(state.docId)}`
   );
   if (data.error || !data.ops) return;
   const ops = data.ops;

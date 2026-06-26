@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$input = $input | Out-String | ConvertFrom-Json; $f = if ($input.tool_input.file_path) { $input.tool_input.file_path } else { '' }; if ($f -match 'pdf_core\\.py|pdf_editor_web\\.py|pdf_editor\\.py|[/\\\\]static[/\\\\]') { @{ hookSpecificOutput = @{ hookEventName = 'PostToolUse'; additionalContext = \"Ты только что изменил ключевой файл: $f. Проверь, нужно ли обновить AGENTS.md (архитектура, API-эндпоинты, соглашения, механизм undo, список реализованных функций).\" } } | ConvertTo-Json -Depth 5 }",
+            "shell": "powershell",
+            "statusMessage": "Проверка актуальности AGENTS.md..."
+          }
+        ]
+      }
+    ]
+  }
+}
