@@ -24,4 +24,4 @@ jobs:
           ssh-keyscan -H "${{ secrets.STAGING_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
           ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
             "${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}" \
-            "cd /opt/pdf-editor-staging && git fetch --quiet origin main && git reset --hard origin/main && /bin/bash deploy/staging-deploy.sh"
+            "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && cd /opt/pdf-editor-staging && git fetch --quiet origin main && git reset --hard origin/main && /bin/bash deploy/staging-deploy.sh"
