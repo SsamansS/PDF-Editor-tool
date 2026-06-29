@@ -1,0 +1,16 @@
+[Unit]
+Description=PDF Editor STAGING (RunPro) web service
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/pdf-editor-staging
+# Учётки и host/port берутся из .env (PDF_EDITOR_HOST=127.0.0.1, PDF_EDITOR_PORT=8766)
+EnvironmentFile=/opt/pdf-editor-staging/.env
+ExecStart=/opt/pdf-editor-staging/venv/bin/python pdf_editor.py gui --no-browser
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
