@@ -1,0 +1,5 @@
+# Файлы, исполняемые на Linux-сервере, всегда с LF — иначе bash/systemd ломаются на CRLF.
+*.sh            text eol=lf
+*.service       text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf

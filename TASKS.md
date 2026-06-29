@@ -166,7 +166,9 @@ systemd `pdf-editor.service` на `127.0.0.1:8765`, новый nginx-блок `p
 # E2 — Мультипользовательский режим и автодеплой с main
 
 Два направления: **(A)** отдельные учётные записи вместо одного общего пароля;
-**(B)** автоматический деплой на `pdf.runpro.in` при обновлении ветки `main`.
+**(B)** автоматический деплой при обновлении ветки `main` — **сначала на staging-окружение
+`pdf-staging.runpro.in`** (прод `pdf.runpro.in` остаётся ручным). Как только PR мёрджится в `main`,
+GitHub Actions автоматически выкатывает staging.
 
 > Нумерация продолжается с **T10** (T8/T9 не используются: старый T8 «HTTPS» свёрнут в T6).
 > Сейчас: авторизация — один общий Basic Auth (env), документы изолированы по случайному `doc_id`,
@@ -185,13 +187,20 @@ systemd `pdf-editor.service` на `127.0.0.1:8765`, новый nginx-блок `p
 | **T13** | Изоляция документов по пользователю («мои файлы») | A | 🟠 высок. | ☐ TODO |
 | **T14** | Управление пользователями (admin: создать/удалить, роли, смена пароля) | A | 🟡 средн. | ☐ TODO |
 | **T15** | Совместимость: судьба общего Basic Auth (bootstrap-админ / fallback) | A | 🟡 средн. | ☐ TODO |
-| **T16** | Решение: механизм автодеплоя | B | 🟠 высок. | ☐ TODO |
-| **T17** | Репозиторий: push `portable_v` → merge в `main`, переход на git-модель на сервере | B | 🟠 высок. | ☐ TODO |
-| **T18** | CI/CD: автодеплой на push в `main` (pull → pip → restart → health-check) | B | 🟠 высок. | ☐ TODO |
+| **T16** | Решение: механизм автодеплоя → **GitHub Actions, pull-модель на staging** | B | 🟠 высок. | ✅ DONE |
+| **T17** | Репозиторий: push в GitHub + merge в `main`, переход на git-модель на сервере | B | 🟠 высок. | 🔄 IN PROGRESS |
+| **T18** | CI/CD: автодеплой на push в `main` в **прод** (отложено — сначала staging) | B | 🟡 средн. | ☐ TODO |
 | **T19** | Безопасность деплоя: отдельный deploy-ключ, health-check, откат при фейле | B | 🟡 средн. | ☐ TODO |
+| **T20** | Решение/DNS: staging-окружение `pdf-staging.runpro.in` (порт 8766, `/opt/pdf-editor-staging`) | B | 🟠 высок. | 🔄 IN PROGRESS |
+| **T21** | Провижн staging-сервиса: `git clone` main, venv, `.env`, systemd `pdf-editor-staging` (127.0.0.1:8766) | B | 🟠 высок. | ☐ TODO |
+| **T22** | nginx-блок `pdf-staging.runpro.in` → 8766 + HTTPS (certbot) | B | 🟠 высок. | ☐ TODO |
+| **T23** | GitHub Actions `deploy-staging.yml`: push в `main` → ssh → git pull → pip → restart → health-check | B | 🟠 высок. | ☐ TODO |
+| **T24** | Безопасность пайплайна: deploy-ключ, секреты GitHub, сужённый sudoers (только restart staging) | B | 🟠 высок. | ☐ TODO |
+| **T25** | E2E-проверка: мёрдж PR в `main` → автодеплой на `pdf-staging` прошёл и работает | B | 🟠 высок. | ☐ TODO |
 
 Зависимости: A: **T10 → T11 → T12 → T13 → T14**, T15 рядом с T12.
-B: **T16 → T17 → T18 → T19**. Части A и B независимы, можно вести параллельно.
+B (staging): **T20 → T21 → T22**; **T23 → T21, T24**; **T25 → T23**. Прод-автодеплой (T18) — после обкатки staging.
+Части A и B независимы, можно вести параллельно.
 
 ## Часть A — Мультипользователь
 
@@ -240,18 +249,20 @@ B: **T16 → T17 → T18 → T19**. Части A и B независимы, мо
 
 ## Часть B — Автодеплой с main
 
-### T16 — Решение: механизм автодеплоя 🟠 ☐ TODO
-- **GitHub Actions по push в `main`** (*рекомендую*): workflow по SSH деплоит на сервер. Нужен deploy-ключ в GitHub Secrets.
-- Альтернативы: webhook + слушатель на сервере; cron `git pull`. Менее наглядно/безопасно.
+### T16 — Решение: механизм автодеплоя 🟠 ✅ DONE
+**Решено (2026-06-29): GitHub Actions, pull-модель, цель — staging.** По `push` в `main` workflow
+заходит по SSH на сервер и обновляет код через `git`. Репозиторий **публичный**
+(`github.com/SsamansS/PDF-Editor-tool`) → серверу не нужен read-ключ для клонирования, `git pull`
+идёт по HTTPS. Деплой нацелен на **отдельное staging-окружение** (T20–T25), прод не автоматизируем
+до обкатки. Альтернативы (webhook-слушатель, cron `git pull`) — запасные, если SSH из Actions окажется
+недоступен из-за Security Group (порт 22).
 
-**DoD:** выбран механизм; зафиксированы требования (доступ к GitHub-репо, секреты).
-
-### T17 — Подготовка репозитория и сервера 🟠 ☐ TODO
-- T17.1 ☐ Запушить `portable_v` в GitHub, влить в `main` (PR).
-- T17.2 ☐ На сервере перевести `/opt/pdf-editor` на `git clone` (вместо archive); зафиксировать ветку/тег для прода.
+### T17 — Подготовка репозитория и сервера 🟠 🔄 IN PROGRESS
+- T17.1 ✅ Код в GitHub, ветка `main` актуальна (PR #2/#3 влиты; B1-фикс в `main`).
+- T17.2 ☐ На сервере staging переводим на `git clone` (см. T21); прод `/opt/pdf-editor` пока на archive.
 - T17.3 ☐ `.env` и `_uploads/` на сервере не перетирать при обновлении (они вне git).
 
-**DoD:** `cd /opt/pdf-editor && git pull` обновляет код, не трогая `.env`/`_uploads`.
+**DoD:** `cd /opt/pdf-editor-staging && git pull` обновляет код, не трогая `.env`/`_uploads`.
 
 ### T18 — CI/CD автодеплой 🟠 ☐ TODO
 - T18.1 ☐ Workflow `.github/workflows/deploy.yml`: триггер `push` в `main`.
@@ -266,6 +277,59 @@ B: **T16 → T17 → T18 → T19**. Части A и B независимы, мо
 - T19.3 ☐ (опц.) Откат на предыдущий коммит при неуспешном health-check.
 
 **DoD:** упавший деплой виден в Actions; прод не остаётся в «битом» состоянии.
+
+## Часть B-staging — автодеплой на `pdf-staging.runpro.in`
+
+> Цель: мёрдж PR в `main` → GitHub Actions автоматически выкатывает **staging** (`pdf-staging.runpro.in`).
+> Прод (`pdf.runpro.in`) не затрагивается — отдельный порт/каталог/сервис/nginx-блок.
+> 🚧 Guardrails E1 сохраняются: новые порт 8766 (только localhost) и nginx-блок; ничего из прод/runpro.in/runpro-bot не трогаем.
+
+### T20 — Решение + DNS для staging 🟠 🔄 IN PROGRESS
+Параметры окружения: поддомен **`pdf-staging.runpro.in`**, порт **8766** (127.0.0.1), каталог
+**`/opt/pdf-editor-staging`**, сервис **`pdf-editor-staging.service`**, ветка **`main`** (git clone).
+- T20.1 ☐ **DNS (делает пользователь):** A-запись `pdf-staging.runpro.in → 13.59.170.121` у Hostinger. Блокер для T22 (nginx/certbot).
+- T20.2 ☐ Решить учётки Basic Auth для staging: общие с прод vs отдельные.
+
+**DoD:** DNS резолвится в IP сервера; зафиксированы порт/каталог/учётки.
+
+### T21 — Провижн staging-сервиса 🟠 ☐ TODO
+*(не требует DNS — сервис слушает 127.0.0.1:8766)*
+- T21.1 ☐ `git clone https://github.com/SsamansS/PDF-Editor-tool.git /opt/pdf-editor-staging` (ветка `main`).
+- T21.2 ☐ venv + `pip install -r requirements.txt`.
+- T21.3 ☐ `/opt/pdf-editor-staging/.env` (chmod 600): `PDF_EDITOR_PORT=8766`, host `127.0.0.1`, учётки.
+- T21.4 ☐ systemd `pdf-editor-staging.service` (WorkingDir/EnvironmentFile под staging), `enable --now`.
+- T21.5 ☐ Шаблон сервиса в репо: `deploy/pdf-editor-staging.service`.
+
+**DoD:** `systemctl is-active pdf-editor-staging` → active; `curl 127.0.0.1:8766` → 401/200.
+
+### T22 — nginx + HTTPS для staging 🟠 ☐ TODO
+*(зависит от T20.1 DNS)*
+- T22.1 ☐ Новый блок `deploy/nginx-pdf-staging.runpro.in.conf` → `proxy_pass 127.0.0.1:8766`, `client_max_body_size 60m`.
+- T22.2 ☐ Симлинк в sites-enabled, `nginx -t` → reload. Блок `runpro.in`/`pdf.runpro.in` не трогать.
+- T22.3 ☐ `certbot --nginx -d pdf-staging.runpro.in` (HTTPS + редирект).
+
+**DoD:** `https://pdf-staging.runpro.in` → 401 (auth); `runpro.in` и `pdf.runpro.in` не задеты.
+
+### T23 — GitHub Actions: автодеплой staging 🟠 ☐ TODO
+*(зависит от T21, T24)*
+- T23.1 ☐ `.github/workflows/deploy-staging.yml`: триггер `on: push: branches: [main]`.
+- T23.2 ☐ Шаги: SSH → `cd /opt/pdf-editor-staging && git fetch && git reset --hard origin/main` → `pip install -r` (если изменился `requirements.txt`) → `sudo systemctl restart pdf-editor-staging` → health-check `curl 127.0.0.1:8766` (ожидаем 401).
+- T23.3 ☐ Учесть Security Group: если SSH из Actions недоступен (порт 22 ограничен по IP) — fallback на cron `git pull` или self-hosted runner.
+
+**DoD:** push в `main` запускает workflow; staging обновляется и сервис перезапущен автоматически.
+
+### T24 — Безопасность пайплайна 🟠 ☐ TODO
+- T24.1 ☐ Отдельный deploy-ключ (ed25519, не `abai_runpro.pem`); публичный — в `~/.ssh/authorized_keys` сервера.
+- T24.2 ☐ Секреты GitHub (вносит пользователь в UI): `STAGING_SSH_KEY` (приватный ключ), `STAGING_HOST`, `STAGING_USER`.
+- T24.3 ☐ Сужённый sudoers `/etc/sudoers.d/pdf-editor-staging`: passwordless только `systemctl restart/start/stop/status pdf-editor-staging`.
+
+**DoD:** workflow ходит на сервер отдельным ключом; sudo ограничен только staging-сервисом.
+
+### T25 — E2E проверка staging-автодеплоя 🟠 ☐ TODO
+*(зависит от T23)*
+Тест: пустой PR в `main` (или коммит) → Actions зелёный → на `pdf-staging` поднялась новая версия (health-check ok), прод и runpro.in целы.
+
+**DoD:** мёрдж в `main` автоматически и наблюдаемо обновляет `pdf-staging.runpro.in`.
 
 ---
 
@@ -326,3 +390,5 @@ bbox-привязанным (2/3). Для уникального текста п
 | 2026-06-27 | B1 | 🔄 Заведён баг: правки некоторых частей PDF не применяются. Область и причина пока не установлены — нужно воспроизведение. |
 | 2026-06-27 | B1 | 🔎 Причина найдена: `replace_block` сначала заменяет текст в content-stream **глобально по странице**, игнорируя bbox → при дублирующемся тексте правка уходит в первый блок. |
 | 2026-06-27 | B1 | ✅ Фикс на ветке `fix_bugs`: гард уникальности (`page.search_for`) перед глобальными стратегиями. Проверено before/after на тестовом PDF. Обновлён `AGENTS.md`. Ждёт ревью пользователя. |
+| 2026-06-29 | B1 | 🚀 Фикс B1 влит в `main` (PR #3) и задеплоен на прод `pdf.runpro.in` (archive→scp→restart). Health-checks ✅, `runpro.in` цел. |
+| 2026-06-29 | T16,T20 | Заведена **Часть B-staging** (T20–T25): автодеплой `main` → `pdf-staging.runpro.in` через GitHub Actions. T16 решён (Actions, pull-модель, репо публичный). Начат провижн. |
